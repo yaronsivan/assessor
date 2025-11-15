@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen;
+}
+
+@keyframes genie-hover {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-12px, -8px, 0);
+  }
+  50% {
+    transform: translate3d(12px, -18px, 0);
+  }
+  75% {
+    transform: translate3d(-6px, -4px, 0);
+  }
+}
+
+.genie-hover {
+  animation: genie-hover 7.5s ease-in-out infinite;
+  will-change: transform;
+}
