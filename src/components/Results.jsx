@@ -1,6 +1,16 @@
+import { useState } from 'react';
 import { getMessage } from '../config/messages';
+import { generateAssessmentReport } from '../utils/assessmentReport';
 
 function Results({ mode = 'fun', profile, results, onRestart }) {
+  const [showReport, setShowReport] = useState(false);
+  const report = generateAssessmentReport(profile, results);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(report);
+    alert('Assessment report copied to clipboard!');
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
 
@@ -34,6 +44,45 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
             <p className="text-purple-200 text-lg mb-2 font-semibold">Questions Asked</p>
             <p className="text-4xl font-bold text-white">{results.totalAsked}</p>
           </div>
+        </div>
+
+        {/* Detailed Assessment Report */}
+        <div className="mt-8">
+          <button
+            onClick={() => setShowReport(!showReport)}
+            className="
+              w-full bg-white/10 hover:bg-white/20
+              text-white text-lg font-bold
+              px-6 py-3 border-4 border-white/30
+              shadow-pixel-sm active:translate-y-1
+              transition-all duration-200
+            "
+          >
+            {showReport ? '▼ Hide' : '▶'} Detailed Assessment Report
+          </button>
+
+          {showReport && (
+            <div className="mt-4 bg-white border-4 border-gray-800 p-6 shadow-pixel">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-800">Assessment Summary</h3>
+                <button
+                  onClick={copyReport}
+                  className="
+                    bg-purple-500 hover:bg-purple-600
+                    text-white text-sm font-bold
+                    px-4 py-2 border-4 border-purple-700
+                    shadow-pixel-sm active:translate-y-1
+                    transition-all duration-200
+                  "
+                >
+                  📋 Copy Report
+                </button>
+              </div>
+              <pre className="text-gray-800 whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                {report}
+              </pre>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

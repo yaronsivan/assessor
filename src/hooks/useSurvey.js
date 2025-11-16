@@ -83,6 +83,8 @@ export function runSurvey(name, email, months, weeklyHours, mode, onQuestion, on
       gateFail: false,
       name,
       email,
+      months,
+      weeklyHours,
       totalHours,
       hourIdx,
       startIdx: capIdx(proposed),

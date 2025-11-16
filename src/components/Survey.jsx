@@ -59,6 +59,8 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
         gateFail: false,
         name: formData.name,
         email: formData.email,
+        months: 0,
+        weeklyHours: 0,
         totalHours: 0,
         hourIdx: 0,
         startIdx: 0,

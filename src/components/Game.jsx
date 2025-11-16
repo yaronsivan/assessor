@@ -26,6 +26,7 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
   const [warmTie, setWarmTie] = useState({ asked: 0, correct: 0 });
   const [feedback, setFeedback] = useState(null);
   const [phase, setPhase] = useState('warmup'); // warmup, boundary, supportive, complete
+  const [questionHistory, setQuestionHistory] = useState([]); // Track all questions and answers
 
   // Notify parent of phase changes
   useEffect(() => {
@@ -113,6 +114,16 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
       isCorrect,
       correctAnswer: currentQuestion.Correct
     });
+
+    // Track this question and answer
+    setQuestionHistory(prev => [...prev, {
+      questionText: currentQuestion.Sentence,
+      level: LEVELS[currentQuestion.levelIdx] || 'Unknown',
+      correctAnswer: currentQuestion.Correct,
+      userAnswer: selectedOption,
+      isCorrect,
+      phase: currentQuestion.isWarmup ? 'warmup' : currentQuestion.isSupportive ? 'supportive' : 'boundary'
+    }]);
 
     // Mark question as used
     setUsed(prev => new Set([...prev, currentQuestion.__id]));
@@ -265,7 +276,8 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
       recommendedLevel: LEVELS[startNextIdx],
       recommendedIdx: startNextIdx,
       totalAsked,
-      decisions
+      decisions,
+      questionHistory
     });
   };
 
