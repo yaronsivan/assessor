@@ -295,8 +295,8 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
 
   return (
     <div className="w-full mx-auto max-w-4xl">
-      {/* Progress indicator */}
-      <div className="text-center mb-3">
+      {/* Progress indicator - hidden on mobile */}
+      <div className="text-center mb-3 hidden md:block">
         <div className="inline-block bg-white/20 px-6 py-2 border-4 border-white/40 shadow-pixel-sm">
           <span className="text-white text-lg font-bold">
             Question {totalAsked + 1}

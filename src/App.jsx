@@ -108,7 +108,8 @@ function App() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <div className="flex-1 flex overflow-hidden">
+      {/* Desktop Layout (md and up) */}
+      <div className="flex-1 hidden md:flex overflow-hidden">
         {/* Left Column - Genie (1/3 width) */}
         <div className="w-1/3">
           <Genie animated={phase === PHASES.GAME} />
@@ -172,6 +173,103 @@ function App() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Layout (below md) */}
+      <div className="flex-1 md:hidden flex flex-col overflow-y-auto">
+        {phase === PHASES.GAME ? (
+          <>
+            {/* Game mode: Top section with genie and message in 1:2 columns */}
+            <div className="flex flex-shrink-0">
+              <div className="w-1/3">
+                <Genie animated={true} />
+              </div>
+              <div className="w-2/3 p-2 flex flex-col justify-center gap-2">
+                {/* Question number */}
+                <div className="inline-block bg-white/20 px-4 py-1 border-4 border-white/40 shadow-pixel-sm">
+                  <span className="text-white text-sm font-bold">
+                    Question {questionCount + 1}
+                  </span>
+                </div>
+
+                {genieMessage && (
+                  <div className="bg-white text-gray-800 border-4 border-gray-800 px-3 py-2 shadow-pixel">
+                    <p className="text-sm text-center leading-snug font-bold">
+                      {genieMessage}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Game questions - full width below */}
+            <div className="flex-1 p-4">
+              <Game
+                mode={mode}
+                profile={profile}
+                onComplete={handleGameComplete}
+                onPhaseChange={setGamePhase}
+                onQuestionChange={setQuestionCount}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Non-game modes: Genie as background with content on top */}
+            <div className="relative flex-1">
+              {/* Genie as background */}
+              <div className="absolute top-0 left-0 right-0 z-0 pt-8">
+                <Genie animated={false} />
+              </div>
+
+              {/* Content overlay */}
+              <div className="relative z-10 p-4 flex flex-col min-h-full">
+                {/* Headline - only on welcome screen */}
+                {phase === PHASES.WELCOME && (
+                  <div className="mb-4 mt-4">
+                    <img
+                      src={titleImage}
+                      alt="The Great Assessor"
+                      className="mx-auto w-full max-w-xs h-auto filter drop-shadow-2xl"
+                    />
+                  </div>
+                )}
+
+                {/* Genie Message Box */}
+                {genieMessage && (
+                  <div className="mb-4 bg-white text-gray-800 border-4 border-gray-800 px-4 py-3 shadow-pixel">
+                    <p className="text-base text-center leading-snug font-bold">
+                      {genieMessage}
+                    </p>
+                  </div>
+                )}
+
+                {/* Phase Content */}
+                <div className="flex-1">
+                  {phase === PHASES.WELCOME && (
+                    <Welcome onComplete={handleWelcomeComplete} />
+                  )}
+                  {phase === PHASES.SURVEY && (
+                    <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} />
+                  )}
+                  {phase === PHASES.GATE_FAIL && (
+                    <GateFail mode={mode} profile={profile} onRestart={handleRestart} />
+                  )}
+                  {phase === PHASES.RESULTS && (
+                    <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} />
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="mt-4 text-center py-3">
+                  <p className="font-pixel text-white/60 text-xs tracking-wider leading-relaxed">
+                    THE GREAT ASSESSOR V0.3.7<br/>© 2025
+                  </p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
