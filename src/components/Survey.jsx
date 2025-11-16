@@ -7,6 +7,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    consent: false,
     canDecode: null,
     hasStudied: null,
     months: '',
@@ -15,9 +16,10 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
   });
   const [currentValidationQuestion, setCurrentValidationQuestion] = useState(null);
   const [emailError, setEmailError] = useState('');
+  const [isSubmittingWebhook, setIsSubmittingWebhook] = useState(false);
 
   const isValidEmail = (email) => {
-    if (!email) return true;
+    if (!email) return false; // Email is now required
     return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
   };
 
@@ -28,14 +30,50 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
     }
   };
 
-  const handleEmailSubmit = (e) => {
+  const handleEmailSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.email || isValidEmail(formData.email)) {
-      setEmailError('');
-      setStep('canDecode');
-    } else {
-      setEmailError('Please enter a valid email or leave it blank');
+
+    // Validate email
+    if (!formData.email) {
+      setEmailError('Email is required');
+      return;
     }
+
+    if (!isValidEmail(formData.email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    // Validate consent
+    if (!formData.consent) {
+      setEmailError('Please consent to receive emails and marketing materials');
+      return;
+    }
+
+    setEmailError('');
+    setIsSubmittingWebhook(true);
+
+    // Send to webhook
+    try {
+      await fetch('https://hook.eu1.make.com/ltr8rb14fzymf5pdg7jlqvnvbdebgx6o', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          consent: formData.consent
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send webhook:', error);
+      // Continue anyway - don't block user from proceeding
+    } finally {
+      setIsSubmittingWebhook(false);
+    }
+
+    setStep('canDecode');
   };
 
   const handleDecodeAnswer = (answer) => {
@@ -150,20 +188,40 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
           <form onSubmit={handleEmailSubmit} className="w-full max-w-md">
             <input
               type="email"
+              required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="your.email@example.com (optional)"
+              placeholder="your.email@example.com"
               className={`w-full px-6 py-4 text-xl border-4 ${emailError ? 'border-red-500' : 'border-purple-300'} focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm`}
               autoFocus
             />
+
+            {/* Consent Checkbox */}
+            <div className="mt-6 bg-purple-200/20 border-4 border-purple-300/40 p-4 shadow-pixel-sm">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  required
+                  checked={formData.consent}
+                  onChange={(e) => setFormData({ ...formData, consent: e.target.checked })}
+                  className="mt-1 w-5 h-5 border-4 border-purple-500"
+                />
+                <span className="text-white font-semibold text-left">
+                  I consent to receive emails and marketing materials from Ulpan Bayit
+                </span>
+              </label>
+            </div>
+
             {emailError && (
-              <p className="text-red-300 text-center mt-2">{emailError}</p>
+              <p className="text-red-300 text-center mt-3 font-semibold">{emailError}</p>
             )}
+
             <button
               type="submit"
-              className="mt-6 w-full bg-purple-500 hover:bg-purple-600 text-white text-xl font-bold px-8 py-4 border-4 border-purple-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+              disabled={isSubmittingWebhook}
+              className="mt-6 w-full bg-purple-500 hover:bg-purple-600 disabled:bg-gray-400 text-white text-xl font-bold px-8 py-4 border-4 border-purple-700 disabled:border-gray-600 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
-              Continue
+              {isSubmittingWebhook ? 'Submitting...' : 'Continue'}
             </button>
           </form>
         )}
