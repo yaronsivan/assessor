@@ -9,9 +9,11 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
     email: '',
     consent: false,
     canDecode: null,
-    hasStudied: null,
+    knowledgeSource: null, // 'school', 'home', 'religious', 'streets'
     months: '',
     weeklyHours: '',
+    totalHours: '',
+    fluencyLevel: null, // For non-school sources
     validationAnswers: []
   });
   const [currentValidationQuestion, setCurrentValidationQuestion] = useState(null);
@@ -84,6 +86,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
         gateFail: false,
         name: formData.name,
         email: formData.email,
+        knowledgeSource: 'none',
         months: 0,
         weeklyHours: 0,
         totalHours: 0,
@@ -93,35 +96,67 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
         extremeBeginner: true
       });
     } else {
-      setStep('hasStudied');
+      setStep('knowledgeSource');
     }
   };
 
-  const handleStudiedAnswer = (answer) => {
-    setFormData({ ...formData, hasStudied: answer });
-    if (answer === 'no') {
-      // Complete immediately for never-studied users
-      onComplete({
-        gateFail: false,
-        name: formData.name,
-        email: formData.email,
-        months: 0,
-        weeklyHours: 0,
-        totalHours: 0,
-        hourIdx: 0,
-        startIdx: 0,
-        trace: [{ topic: 'present', ans: 'n', at: 0, reason: 'no prior study' }],
-        extremeBeginner: true
-      });
+  const handleKnowledgeSourceAnswer = (source) => {
+    setFormData({ ...formData, knowledgeSource: source });
+    if (source === 'school') {
+      setStep('studyInput');
     } else {
-      setStep('months');
+      setStep('fluency');
     }
+  };
+
+  const handleFluencyAnswer = (level) => {
+    setFormData({ ...formData, fluencyLevel: level });
+
+    // Map fluency level to approximate hours/level for validation
+    const fluencyToHoursMap = {
+      'a1': 80,    // ~80 hours = level 1
+      'a2': 240,   // ~240 hours = level 3-4
+      'b1': 480,   // ~480 hours = level 6-7
+      'b2': 800    // ~800 hours = level 9-10
+    };
+
+    const estimatedHours = fluencyToHoursMap[level] || 80;
+    const months = Math.round(estimatedHours / (4.3 * 3)); // Assume 3 hrs/week average
+    const weeklyHours = 3;
+
+    setStep('validation');
+    runSurvey(
+      formData.name,
+      formData.email,
+      months,
+      weeklyHours,
+      mode,
+      (question) => setCurrentValidationQuestion(question),
+      (profile) => onComplete({
+        ...profile,
+        knowledgeSource: formData.knowledgeSource,
+        fluencyLevel: level
+      })
+    );
   };
 
   const handleHoursSubmit = (e) => {
     e.preventDefault();
-    const months = parseInt(formData.months || '1', 10);
-    const weeklyHours = parseFloat(formData.weeklyHours || '1');
+
+    let months, weeklyHours, totalHours;
+
+    // Check if user entered total hours directly
+    if (formData.totalHours && formData.totalHours.trim() !== '') {
+      totalHours = parseFloat(formData.totalHours);
+      // Estimate months and weekly hours from total
+      weeklyHours = 3; // Assume 3 hours per week average
+      months = Math.round(totalHours / (4.3 * weeklyHours));
+    } else {
+      months = parseInt(formData.months || '1', 10);
+      weeklyHours = parseFloat(formData.weeklyHours || '1');
+      totalHours = months * weeklyHours * 4.3;
+    }
+
     setStep('validation');
 
     // Initialize validation questions
@@ -132,7 +167,11 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
       weeklyHours,
       mode,
       (question) => setCurrentValidationQuestion(question),
-      (profile) => onComplete(profile)
+      (profile) => onComplete({
+        ...profile,
+        knowledgeSource: formData.knowledgeSource,
+        totalHours
+      })
     );
   };
 
@@ -150,10 +189,12 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
         return getMessage('survey.email', mode);
       case 'canDecode':
         return getMessage('survey.canDecode', mode);
-      case 'hasStudied':
-        return getMessage('survey.hasStudied', mode);
-      case 'months':
-        return getMessage('survey.studyDetails', mode);
+      case 'knowledgeSource':
+        return "I assume you know some Hebrew if you're here. Where is your knowledge from?";
+      case 'studyInput':
+        return "Tell me about your studies...";
+      case 'fluency':
+        return "How would you describe your current Hebrew abilities?";
       case 'validation':
         return currentValidationQuestion?.text || "Let me ask you a few questions...";
       default:
@@ -252,26 +293,38 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
           </div>
         )}
 
-        {/* Has Studied Question */}
-        {step === 'hasStudied' && (
-          <div className="flex gap-6">
+        {/* Knowledge Source Question */}
+        {step === 'knowledgeSource' && (
+          <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
-              onClick={() => handleStudiedAnswer('yes')}
-              className="bg-green-500 hover:bg-green-600 text-white text-2xl font-bold px-12 py-6 border-4 border-green-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+              onClick={() => handleKnowledgeSourceAnswer('school')}
+              className="bg-blue-500 hover:bg-blue-600 text-white text-lg font-bold px-6 py-4 border-4 border-blue-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
-              Yes
+              Language School<br/><span className="text-sm">(Ulpan, University, etc.)</span>
             </button>
             <button
-              onClick={() => handleStudiedAnswer('no')}
-              className="bg-red-500 hover:bg-red-600 text-white text-2xl font-bold px-12 py-6 border-4 border-red-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+              onClick={() => handleKnowledgeSourceAnswer('home')}
+              className="bg-green-500 hover:bg-green-600 text-white text-lg font-bold px-6 py-4 border-4 border-green-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
-              No
+              Home<br/><span className="text-sm">(My parents speak it)</span>
+            </button>
+            <button
+              onClick={() => handleKnowledgeSourceAnswer('religious')}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white text-lg font-bold px-6 py-4 border-4 border-yellow-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+            >
+              Sunday School or Shul
+            </button>
+            <button
+              onClick={() => handleKnowledgeSourceAnswer('streets')}
+              className="bg-purple-500 hover:bg-purple-600 text-white text-lg font-bold px-6 py-4 border-4 border-purple-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+            >
+              From the Streets<br/><span className="text-sm">(Living in Israel)</span>
             </button>
           </div>
         )}
 
-        {/* Study Hours Form */}
-        {step === 'months' && (
+        {/* Study Input Form */}
+        {step === 'studyInput' && (
           <form onSubmit={handleHoursSubmit} className="w-full max-w-md space-y-6">
             <div>
               <label className="block text-white text-lg mb-2 text-center font-semibold">
@@ -280,11 +333,12 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
               <input
                 type="number"
                 value={formData.months}
-                onChange={(e) => setFormData({ ...formData, months: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, months: e.target.value, totalHours: '' })}
                 placeholder="e.g., 6"
                 min="0"
                 className="w-full px-6 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm"
                 autoFocus
+                disabled={formData.totalHours !== ''}
               />
             </div>
             <div>
@@ -294,13 +348,32 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
               <input
                 type="number"
                 value={formData.weeklyHours}
-                onChange={(e) => setFormData({ ...formData, weeklyHours: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, weeklyHours: e.target.value, totalHours: '' })}
                 placeholder="e.g., 3"
                 min="0"
                 step="0.5"
                 className="w-full px-6 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm"
+                disabled={formData.totalHours !== ''}
               />
             </div>
+
+            <div className="text-center text-white font-semibold">OR</div>
+
+            <div>
+              <label className="block text-white text-lg mb-2 text-center font-semibold">
+                Total hours studied (if you prefer)
+              </label>
+              <input
+                type="number"
+                value={formData.totalHours}
+                onChange={(e) => setFormData({ ...formData, totalHours: e.target.value, months: '', weeklyHours: '' })}
+                placeholder="e.g., 100"
+                min="0"
+                className="w-full px-6 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm"
+                disabled={formData.months !== '' || formData.weeklyHours !== ''}
+              />
+            </div>
+
             <button
               type="submit"
               className="w-full bg-purple-500 hover:bg-purple-600 text-white text-xl font-bold px-8 py-4 border-4 border-purple-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
@@ -308,6 +381,40 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
               Continue
             </button>
           </form>
+        )}
+
+        {/* Fluency Question */}
+        {step === 'fluency' && (
+          <div className="w-full max-w-2xl space-y-4">
+            <button
+              onClick={() => handleFluencyAnswer('a1')}
+              className="w-full bg-green-500 hover:bg-green-600 text-white text-left font-bold px-6 py-4 border-4 border-green-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+            >
+              <div className="text-xl mb-1">Beginner (A1)</div>
+              <div className="text-sm opacity-90">I can understand and use familiar everyday expressions and very basic phrases</div>
+            </button>
+            <button
+              onClick={() => handleFluencyAnswer('a2')}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white text-left font-bold px-6 py-4 border-4 border-blue-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+            >
+              <div className="text-xl mb-1">Elementary (A2)</div>
+              <div className="text-sm opacity-90">I can communicate in simple routine tasks and describe my background in simple terms</div>
+            </button>
+            <button
+              onClick={() => handleFluencyAnswer('b1')}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white text-left font-bold px-6 py-4 border-4 border-yellow-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+            >
+              <div className="text-xl mb-1">Intermediate (B1)</div>
+              <div className="text-sm opacity-90">I can deal with most situations while traveling and produce simple text on familiar topics</div>
+            </button>
+            <button
+              onClick={() => handleFluencyAnswer('b2')}
+              className="w-full bg-purple-500 hover:bg-purple-600 text-white text-left font-bold px-6 py-4 border-4 border-purple-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+            >
+              <div className="text-xl mb-1">Upper Intermediate (B2)</div>
+              <div className="text-sm opacity-90">I can interact with fluency and spontaneity and produce detailed text on a wide range of subjects</div>
+            </button>
+          </div>
         )}
 
         {/* Validation Questions */}

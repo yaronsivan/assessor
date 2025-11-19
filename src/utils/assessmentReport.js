@@ -1,5 +1,5 @@
 export function generateAssessmentReport(profile, results) {
-  const { name, email, months, weeklyHours, trace } = profile;
+  const { name, email, months, weeklyHours, trace, knowledgeSource, fluencyLevel } = profile;
   const { finishedLevel, recommendedLevel, totalAsked, decisions, questionHistory } = results;
 
   // Calculate total hours (use profile.totalHours if available)
@@ -82,12 +82,33 @@ export function generateAssessmentReport(profile, results) {
     return report;
   }
 
-  report += ` has studied Hebrew for ${months} ${months === 1 ? 'month' : 'months'}`;
+  // Describe knowledge source
+  const sourceDescriptions = {
+    'school': 'formal language study (Ulpan, University, or similar)',
+    'home': 'growing up in a Hebrew-speaking home',
+    'religious': 'Sunday school or synagogue education',
+    'streets': 'immersion while living in Israel without formal study'
+  };
 
-  if (weeklyHours > 0) {
-    report += `, for ${weeklyHours} ${weeklyHours === 1 ? 'hour' : 'hours'} per week, meaning about ${Math.round(totalHours)} hours in total`;
+  const sourceDesc = sourceDescriptions[knowledgeSource] || 'language study';
+  report += `'s Hebrew knowledge comes from ${sourceDesc}. `;
+
+  // Different descriptions based on knowledge source
+  if (knowledgeSource === 'school') {
+    report += `They have studied for ${months} ${months === 1 ? 'month' : 'months'}`;
+    if (weeklyHours > 0) {
+      report += `, for ${weeklyHours} ${weeklyHours === 1 ? 'hour' : 'hours'} per week, meaning about ${Math.round(totalHours)} hours in total`;
+    }
+    report += `. `;
+  } else if (fluencyLevel) {
+    const fluencyDescriptions = {
+      'a1': 'beginner level (A1) - can understand and use familiar everyday expressions',
+      'a2': 'elementary level (A2) - can communicate in simple routine tasks',
+      'b1': 'intermediate level (B1) - can deal with most situations while traveling',
+      'b2': 'upper intermediate level (B2) - can interact with fluency and spontaneity'
+    };
+    report += `They self-assessed their fluency as ${fluencyDescriptions[fluencyLevel] || 'intermediate'}. `;
   }
-  report += `. `;
 
   // Background assessment
   report += `I started with background questions. `;
