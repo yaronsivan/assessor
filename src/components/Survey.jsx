@@ -394,28 +394,28 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
               className="w-full bg-green-500 hover:bg-green-600 text-white text-left font-bold px-6 py-4 border-4 border-green-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
               <div className="text-xl mb-1">Beginner (A1)</div>
-              <div className="text-sm opacity-90">I can understand and use familiar everyday expressions and very basic phrases</div>
+              <div className="text-sm opacity-90">I know basic words and phrases for everyday situations</div>
             </button>
             <button
               onClick={() => handleFluencyAnswer('a2')}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white text-left font-bold px-6 py-4 border-4 border-blue-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
               <div className="text-xl mb-1">Elementary (A2)</div>
-              <div className="text-sm opacity-90">I can communicate in simple routine tasks and describe my background in simple terms</div>
+              <div className="text-sm opacity-90">I can have simple conversations about familiar topics</div>
             </button>
             <button
               onClick={() => handleFluencyAnswer('b1')}
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-white text-left font-bold px-6 py-4 border-4 border-yellow-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
               <div className="text-xl mb-1">Intermediate (B1)</div>
-              <div className="text-sm opacity-90">I can deal with most situations while traveling and produce simple text on familiar topics</div>
+              <div className="text-sm opacity-90">I can handle most everyday conversations and travel situations</div>
             </button>
             <button
               onClick={() => handleFluencyAnswer('b2')}
               className="w-full bg-purple-500 hover:bg-purple-600 text-white text-left font-bold px-6 py-4 border-4 border-purple-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
               <div className="text-xl mb-1">Upper Intermediate (B2)</div>
-              <div className="text-sm opacity-90">I can interact with fluency and spontaneity and produce detailed text on a wide range of subjects</div>
+              <div className="text-sm opacity-90">I can speak fluently and naturally about most topics</div>
             </button>
           </div>
         )}
