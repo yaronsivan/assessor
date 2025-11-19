@@ -73,6 +73,15 @@ export function generateAssessmentReport(profile, results) {
   let report = `${name}`;
   if (email) report += ` (${email})`;
 
+  // Special case for extreme beginners who never studied
+  if (totalAsked === 0) {
+    report += ` has never studied Hebrew before. `;
+    report += `I started with background questions and they indicated they have no prior experience with the language. `;
+    report += `Based on this, I concluded they should start at the very beginning with level ${recommendedLevel}. `;
+    report += `No assessment questions were needed.\n`;
+    return report;
+  }
+
   report += ` has studied Hebrew for ${months} ${months === 1 ? 'month' : 'months'}`;
 
   if (weeklyHours > 0) {
