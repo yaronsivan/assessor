@@ -45,6 +45,18 @@ function App() {
     setProfile(surveyProfile);
     if (surveyProfile.gateFail) {
       setPhase(PHASES.GATE_FAIL);
+    } else if (surveyProfile.extremeBeginner) {
+      // Skip game for extreme beginners, go straight to results
+      setGameResults({
+        finishedLevel: '—',
+        finishedIdx: -1,
+        recommendedLevel: 'Aleph (A1.1)',
+        recommendedIdx: 0,
+        totalAsked: 0,
+        decisions: [],
+        questionHistory: []
+      });
+      setPhase(PHASES.RESULTS);
     } else {
       setPhase(PHASES.GAME);
     }

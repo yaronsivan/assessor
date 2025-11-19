@@ -79,10 +79,18 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
   const handleDecodeAnswer = (answer) => {
     setFormData({ ...formData, canDecode: answer });
     if (answer === 'no') {
+      // Complete immediately for users who can't decode - treat as complete beginners
       onComplete({
-        gateFail: true,
+        gateFail: false,
         name: formData.name,
-        email: formData.email
+        email: formData.email,
+        months: 0,
+        weeklyHours: 0,
+        totalHours: 0,
+        hourIdx: 0,
+        startIdx: 0,
+        trace: [{ topic: 'present', ans: 'n', at: 0, reason: 'cannot decode alphabet' }],
+        extremeBeginner: true
       });
     } else {
       setStep('hasStudied');
