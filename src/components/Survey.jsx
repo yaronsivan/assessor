@@ -422,22 +422,22 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
 
         {/* Validation Questions */}
         {step === 'validation' && currentValidationQuestion && (
-          <div className="flex gap-6">
+          <div className="flex gap-2 md:gap-6">
             <button
               onClick={() => handleValidationAnswer('y')}
-              className="bg-green-500 hover:bg-green-600 text-white text-2xl font-bold px-12 py-6 border-4 border-green-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white text-lg md:text-2xl font-bold px-4 md:px-12 py-4 md:py-6 border-4 border-green-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
               Yes
             </button>
             <button
               onClick={() => handleValidationAnswer('n')}
-              className="bg-red-500 hover:bg-red-600 text-white text-2xl font-bold px-12 py-6 border-4 border-red-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white text-lg md:text-2xl font-bold px-4 md:px-12 py-4 md:py-6 border-4 border-red-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
               No
             </button>
             <button
               onClick={() => handleValidationAnswer('u')}
-              className="bg-gray-500 hover:bg-gray-600 text-white text-2xl font-bold px-12 py-6 border-4 border-gray-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
+              className="flex-1 bg-gray-500 hover:bg-gray-600 text-white text-lg md:text-2xl font-bold px-4 md:px-12 py-4 md:py-6 border-4 border-gray-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
               Unsure
             </button>
