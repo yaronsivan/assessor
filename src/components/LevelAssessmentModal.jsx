@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { trackWhatsAppClick, trackCalComBooking } from '../utils/analytics';
 
 function LevelAssessmentModal({ isOpen, onClose, profile, recommendedLevel }) {
   if (!isOpen) return null;
 
   const handleWhatsApp = () => {
+    trackWhatsAppClick(recommendedLevel);
     const name = profile?.name || '';
     const level = recommendedLevel || '';
     const message = encodeURIComponent(
@@ -14,6 +16,7 @@ function LevelAssessmentModal({ isOpen, onClose, profile, recommendedLevel }) {
   };
 
   const handleCalendly = () => {
+    trackCalComBooking(recommendedLevel);
     window.open('https://cal.com/ulpan-bayit-level-assessments/20-minute-hebrew-level-assessment', '_blank');
     onClose();
   };

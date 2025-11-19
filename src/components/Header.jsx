@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ContactModal from './ContactModal';
+import { trackContactUs } from '../utils/analytics';
 
 function Header() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -28,7 +29,10 @@ function Header() {
               Start Over
             </button>
             <button
-              onClick={() => setIsContactModalOpen(true)}
+              onClick={() => {
+                trackContactUs();
+                setIsContactModalOpen(true);
+              }}
               className="bg-purple-500 hover:bg-purple-600 text-white font-bold px-6 py-2 border-4 border-purple-700 shadow-pixel-sm active:translate-y-1 active:shadow-none transition-all"
             >
               Contact Us

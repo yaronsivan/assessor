@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { runSurvey } from '../hooks/useSurvey';
 import { getMessage } from '../config/messages';
+import { trackAssessmentStarted } from '../utils/analytics';
 
 function Survey({ mode = 'fun', onComplete, onMessageChange }) {
   const [step, setStep] = useState('name');
@@ -76,6 +77,9 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
     } finally {
       setIsSubmittingWebhook(false);
     }
+
+    // Track assessment started
+    trackAssessmentStarted();
 
     setStep('canDecode');
   };

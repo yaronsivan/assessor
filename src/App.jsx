@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Genie from './components/Genie';
 import Welcome from './components/Welcome';
@@ -9,6 +9,7 @@ import Game from './components/Game';
 import Results from './components/Results';
 import titleImage from './assets/great assessor2.png';
 import { getMessage } from './config/messages';
+import { initFacebookPixel, initGA4 } from './utils/analytics';
 
 const PHASES = {
   WELCOME: 'welcome',
@@ -27,6 +28,12 @@ function App() {
   const [gamePhase, setGamePhase] = useState('boundary'); // warmup, boundary, supportive
   const [questionCount, setQuestionCount] = useState(0);
   const [surveyMessage, setSurveyMessage] = useState(null);
+
+  // Initialize analytics on app load
+  useEffect(() => {
+    initFacebookPixel();
+    initGA4();
+  }, []);
 
   const handleWelcomeComplete = (selectedMode, showStory = false) => {
     setMode(selectedMode);

@@ -3,6 +3,7 @@ import { getMessage } from '../config/messages';
 import { generateAssessmentReport, generateEmailContent } from '../utils/assessmentReport';
 import CourseSelectionModal from './CourseSelectionModal';
 import LevelAssessmentModal from './LevelAssessmentModal';
+import { trackAssessmentCompleted, trackViewCourses, trackScheduleAssessment } from '../utils/analytics';
 
 function Results({ mode = 'fun', profile, results, onRestart }) {
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
@@ -75,6 +76,9 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
     };
 
     sendResultsWebhook();
+
+    // Track assessment completion
+    trackAssessmentCompleted(results.recommendedLevel);
   }, []); // Empty dependency array means this runs once when component mounts
 
   // Map levels to skills based on Ulpan Bayit's curriculum
@@ -157,7 +161,10 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
         {/* Action Buttons */}
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
           <button
-            onClick={() => setIsCourseModalOpen(true)}
+            onClick={() => {
+              trackViewCourses(results.recommendedLevel);
+              setIsCourseModalOpen(true);
+            }}
             className="
               bg-purple-500 hover:bg-purple-600
               text-white text-xl font-bold
@@ -170,7 +177,10 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
           </button>
 
           <button
-            onClick={() => setIsAssessmentModalOpen(true)}
+            onClick={() => {
+              trackScheduleAssessment(results.recommendedLevel);
+              setIsAssessmentModalOpen(true);
+            }}
             className="
               bg-blue-500 hover:bg-blue-600
               text-white text-xl font-bold
