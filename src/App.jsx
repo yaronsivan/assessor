@@ -228,14 +228,17 @@ function App() {
         ) : (
           <>
             {/* Non-game modes: Genie as background with content on top */}
-            <div className="relative flex-1">
+            <div className="relative flex-1 flex flex-col">
               {/* Genie as background */}
               <div className="absolute top-0 left-0 right-0 z-0 pt-8">
                 <Genie animated={false} />
               </div>
 
+              {/* Spacer to push content down */}
+              <div className="flex-1 z-0"></div>
+
               {/* Content overlay - anchored to bottom */}
-              <div className="relative z-10 p-4 flex flex-col justify-end min-h-full">
+              <div className="relative z-10 p-4 flex-shrink-0">
                 {/* Headline - only on welcome screen */}
                 {phase === PHASES.WELCOME && (
                   <div className="mb-4">
