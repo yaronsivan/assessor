@@ -143,11 +143,12 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
   const handleHoursSubmit = (e) => {
     e.preventDefault();
 
-    let months, weeklyHours, totalHours;
+    let months, weeklyHours, totalHours, directHours;
 
     // Check if user entered total hours directly
     if (formData.totalHours && formData.totalHours.trim() !== '') {
       totalHours = parseFloat(formData.totalHours);
+      directHours = true;
       // Estimate months and weekly hours from total
       weeklyHours = 3; // Assume 3 hours per week average
       months = Math.round(totalHours / (4.3 * weeklyHours));
@@ -155,6 +156,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
       months = parseInt(formData.months || '1', 10);
       weeklyHours = parseFloat(formData.weeklyHours || '1');
       totalHours = months * weeklyHours * 4.3;
+      directHours = false;
     }
 
     setStep('validation');
@@ -170,7 +172,8 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
       (profile) => onComplete({
         ...profile,
         knowledgeSource: formData.knowledgeSource,
-        totalHours
+        totalHours,
+        directHours
       })
     );
   };

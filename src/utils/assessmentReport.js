@@ -1,5 +1,5 @@
 export function generateAssessmentReport(profile, results) {
-  const { name, email, months, weeklyHours, trace, knowledgeSource, fluencyLevel } = profile;
+  const { name, email, months, weeklyHours, trace, knowledgeSource, fluencyLevel, directHours } = profile;
   const { finishedLevel, recommendedLevel, totalAsked, decisions, questionHistory } = results;
 
   // Calculate total hours (use profile.totalHours if available)
@@ -95,11 +95,15 @@ export function generateAssessmentReport(profile, results) {
 
   // Different descriptions based on knowledge source
   if (knowledgeSource === 'school') {
-    report += `They have studied for ${months} ${months === 1 ? 'month' : 'months'}`;
-    if (weeklyHours > 0) {
-      report += `, for ${weeklyHours} ${weeklyHours === 1 ? 'hour' : 'hours'} per week, meaning about ${Math.round(totalHours)} hours in total`;
+    if (directHours) {
+      report += `They have studied for approximately ${Math.round(totalHours)} hours in total. `;
+    } else {
+      report += `They have studied for ${months} ${months === 1 ? 'month' : 'months'}`;
+      if (weeklyHours > 0) {
+        report += `, for ${weeklyHours} ${weeklyHours === 1 ? 'hour' : 'hours'} per week, meaning about ${Math.round(totalHours)} hours in total`;
+      }
+      report += `. `;
     }
-    report += `. `;
   } else if (fluencyLevel) {
     const fluencyDescriptions = {
       'a1': 'beginner level (A1) - can understand and use familiar everyday expressions',
@@ -114,9 +118,11 @@ export function generateAssessmentReport(profile, results) {
   report += `I started with background questions. `;
 
   if (abilities.length > 0) {
-    report += `They reported being able to ${abilities.slice(0, -1).join(', ')}`;
-    if (abilities.length > 1) {
-      report += ` and ${abilities[abilities.length - 1]}`;
+    report += `They reported being able to `;
+    if (abilities.length === 1) {
+      report += abilities[0];
+    } else {
+      report += `${abilities.slice(0, -1).join(', ')} and ${abilities[abilities.length - 1]}`;
     }
     report += `. `;
   }
