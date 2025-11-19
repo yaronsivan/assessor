@@ -11,8 +11,13 @@ function shuffle(arr) {
 
 export function selectLevelQuestions(all, levelIdx, used, n = 5) {
   const lvl = LEVELS[levelIdx];
+
+  // Extract the code from parentheses (e.g., "Aleph (A1.1)" -> "A1.1")
+  const match = lvl.match(/\(([^)]+)\)/);
+  const levelCode = match ? match[1] : lvl;
+
   const pool = all
-    .filter(q => q.Level === lvl && !used.has(q.__id));
+    .filter(q => q.Level === levelCode && !used.has(q.__id));
   return shuffle(pool).slice(0, n);
 }
 
