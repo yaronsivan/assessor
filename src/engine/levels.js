@@ -1,7 +1,14 @@
 export const LEVELS = [
-  "A1.1","A1.2","A1.3",
-  "A2.1","A2.2","A2.3",
-  "B1.1","B1.2","B1.3","B2.1"
+  "Aleph (A1.1)",
+  "Aleph+ (A1.2)",
+  "Aleph++ (A1.3)",
+  "Bet (A2.1)",
+  "Bet+ (A2.2)",
+  "Bet++ (A2.3)",
+  "Gimmel (B1.1)",
+  "Gimmel+ (B1.2)",
+  "Gimmel++ (B1.3)",
+  "Dalet (B2.1)"
 ];
 
 export function capIdx(i) {
