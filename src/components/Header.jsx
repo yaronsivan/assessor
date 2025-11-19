@@ -21,14 +21,12 @@ function Header() {
 
           {/* Navigation */}
           <nav className="flex items-center gap-6 text-sm">
-            <a
-              href="https://ulpan.co.il#programs"
+            <button
+              onClick={() => window.location.reload()}
               className="text-gray-800 hover:text-purple-600 font-bold transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
             >
-              Courses
-            </a>
+              Start Over
+            </button>
             <button
               onClick={() => setIsContactModalOpen(true)}
               className="bg-purple-500 hover:bg-purple-600 text-white font-bold px-6 py-2 border-4 border-purple-700 shadow-pixel-sm active:translate-y-1 active:shadow-none transition-all"

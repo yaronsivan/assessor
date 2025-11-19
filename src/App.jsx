@@ -7,7 +7,7 @@ import Survey from './components/Survey';
 import GateFail from './components/GateFail';
 import Game from './components/Game';
 import Results from './components/Results';
-import titleImage from './assets/the great assessor.png';
+import titleImage from './assets/great assessor2.png';
 import { getMessage } from './config/messages';
 
 const PHASES = {

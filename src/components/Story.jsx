@@ -98,7 +98,7 @@ NOW!`;
   return (
     <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
       {/* Scrolling text container */}
-      <div className="perspective-container">
+      <div className="scroll-container">
         <div className="scrolling-text">
           <pre className="font-pixel text-yellow-300 text-center leading-loose whitespace-pre-wrap">
             {storyText}
@@ -125,30 +125,27 @@ NOW!`;
       )}
 
       <style>{`
-        .perspective-container {
-          perspective: 400px;
+        .scroll-container {
           width: 100%;
           height: 100%;
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: center;
           overflow: hidden;
         }
 
         .scrolling-text {
-          transform: rotateX(25deg);
-          transform-origin: 50% 100%;
-          animation: scroll 120s linear forwards;
-          padding: 0 20%;
-          font-size: 42px;
+          animation: scroll 90s linear forwards;
+          padding: 0 10%;
+          font-size: clamp(16px, 3vw, 32px);
         }
 
         @keyframes scroll {
           0% {
-            transform: rotateX(25deg) translateY(550vh);
+            transform: translateY(100vh);
           }
           100% {
-            transform: rotateX(25deg) translateY(-400vh);
+            transform: translateY(-100%);
           }
         }
       `}</style>

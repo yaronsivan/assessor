@@ -7,8 +7,6 @@ import LevelAssessmentModal from './LevelAssessmentModal';
 function Results({ mode = 'fun', profile, results, onRestart }) {
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
-  const [showAlgorithmPath, setShowAlgorithmPath] = useState(false);
-  const [showEmailPreview, setShowEmailPreview] = useState(false);
   const webhookSent = useRef(false);
 
   // Keep report generation for future email use
@@ -39,25 +37,38 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
 
     const sendResultsWebhook = async () => {
       try {
-        await fetch('https://hook.eu1.make.com/obn5ra3f86v4s4eqg6bp661yeeqv04u2', {
+        const payload = {
+          name: profile?.name,
+          email: profile?.email,
+          recommendedLevel: results.recommendedLevel,
+          recommendedLevelId: getLevelId(results.recommendedLevel),
+          finishedLevel: results.finishedLevel,
+          finishedLevelId: getLevelId(results.finishedLevel),
+          emailHTML: emailContent,
+          analysis: report,
+          totalAsked: results.totalAsked,
+          timestamp: new Date().toISOString(),
+          eventType: 'assessment_completed'
+        };
+
+        console.log('Sending webhook payload:', {
+          ...payload,
+          emailHTML: emailContent ? `${emailContent.substring(0, 100)}... (${emailContent.length} chars)` : 'EMPTY',
+          analysis: report ? `${report.substring(0, 100)}... (${report.length} chars)` : 'EMPTY'
+        });
+        console.log('Total payload size:', JSON.stringify(payload).length, 'bytes');
+
+        const response = await fetch('https://hook.eu1.make.com/obn5ra3f86v4s4eqg6bp661yeeqv04u2', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            name: profile?.name,
-            email: profile?.email,
-            recommendedLevel: results.recommendedLevel,
-            recommendedLevelId: getLevelId(results.recommendedLevel),
-            finishedLevel: results.finishedLevel,
-            finishedLevelId: getLevelId(results.finishedLevel),
-            emailHTML: emailContent,
-            analysis: report,
-            totalAsked: results.totalAsked,
-            timestamp: new Date().toISOString(),
-            eventType: 'assessment_completed'
-          })
+          body: JSON.stringify(payload)
         });
+
+        console.log('Webhook response status:', response.status);
+        const responseText = await response.text();
+        console.log('Webhook response:', responseText);
       } catch (error) {
         console.error('Failed to send results webhook:', error);
       }
@@ -170,118 +181,6 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
           >
             Schedule In-Person Assessment
           </button>
-        </div>
-
-        {/* Email Preview */}
-        <div className="mt-8">
-          <button
-            onClick={() => setShowEmailPreview(!showEmailPreview)}
-            className="
-              w-full bg-blue-500/20 hover:bg-blue-500/30
-              text-blue-200 text-sm font-bold
-              px-6 py-3 border-4 border-blue-500/50
-              shadow-pixel-sm active:translate-y-1
-              transition-all duration-200
-            "
-          >
-            {showEmailPreview ? '▼ Hide' : '▶'} Email Preview
-          </button>
-
-          {showEmailPreview && (
-            <div className="mt-4 bg-white border-4 border-blue-500 p-6 shadow-pixel">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-gray-800">Email Content</h3>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(emailContent);
-                    alert('Email HTML copied to clipboard!');
-                  }}
-                  className="
-                    bg-blue-500 hover:bg-blue-600
-                    text-white text-sm font-bold
-                    px-4 py-2 border-4 border-blue-700
-                    shadow-pixel-sm active:translate-y-1
-                    transition-all duration-200
-                  "
-                >
-                  📋 Copy Email HTML
-                </button>
-              </div>
-              <div className="bg-gray-50 p-4 rounded border border-gray-300 max-h-96 overflow-y-auto">
-                <div dangerouslySetInnerHTML={{ __html: emailContent }} />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Algorithm Path - For Analysis */}
-        <div className="mt-8">
-          <button
-            onClick={() => setShowAlgorithmPath(!showAlgorithmPath)}
-            className="
-              w-full bg-yellow-500/20 hover:bg-yellow-500/30
-              text-yellow-200 text-sm font-bold
-              px-6 py-3 border-4 border-yellow-500/50
-              shadow-pixel-sm active:translate-y-1
-              transition-all duration-200
-            "
-          >
-            {showAlgorithmPath ? '▼ Hide' : '▶'} Algorithm Path (Analysis)
-          </button>
-
-          {showAlgorithmPath && (
-            <div className="mt-4 bg-gray-900 border-4 border-yellow-500 p-6 shadow-pixel">
-              <h3 className="text-xl font-bold text-yellow-300 mb-4">Assessment Journey</h3>
-
-              <div className="mb-4">
-                <p className="text-yellow-200 text-sm font-semibold mb-2">Summary:</p>
-                <div className="bg-black/50 p-3 rounded text-white font-mono text-xs space-y-1">
-                  <div>Starting Level Index: {results.decisions && results.decisions.length > 0 ? '(determined by warmup)' : '0'}</div>
-                  <div>Final Level Index: {results.finishedIdx}</div>
-                  <div>Recommended Level Index: {results.recommendedIdx}</div>
-                  <div>Total Questions Asked: {results.totalAsked}</div>
-                  <div>Total Decisions Made: {results.decisions?.length || 0}</div>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-yellow-200 text-sm font-semibold mb-2">Decision Path:</p>
-                <div className="bg-black/50 p-3 rounded space-y-2">
-                  {results.decisions && results.decisions.length > 0 ? (
-                    results.decisions.map((decision, idx) => (
-                      <div key={idx} className="text-white font-mono text-xs border-l-4 border-yellow-500 pl-3 py-1">
-                        <span className="text-gray-400">{idx + 1}.</span> {decision}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-gray-400 text-xs">No decisions recorded (extreme beginner path)</div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-yellow-200 text-sm font-semibold mb-2">Question History:</p>
-                <div className="bg-black/50 p-3 rounded max-h-64 overflow-y-auto">
-                  {results.questionHistory && results.questionHistory.length > 0 ? (
-                    results.questionHistory.map((q, idx) => (
-                      <div key={idx} className="text-xs mb-3 border-b border-gray-700 pb-2">
-                        <div className="text-gray-400">Q{idx + 1}: Level {q.levelIdx} ({q.level})</div>
-                        <div className="text-white font-mono mt-1">{q.question}</div>
-                        <div className={`mt-1 ${q.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-                          User answered: {q.userAnswer} {q.isCorrect ? '✓' : '✗'}
-                        </div>
-                        {!q.isCorrect && (
-                          <div className="text-yellow-300 text-xs mt-1">Correct: {q.correctAnswer}</div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-gray-400 text-xs">No question history available</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Email notification message */}
