@@ -5,15 +5,15 @@ export const MESSAGES = {
       formal: "What's your name?"
     },
     email: {
-      fun: "And your email? (I promise I won't spam you from inside this lamp!)",
+      fun: "And your email? (I promise we won't spam you!)",
       formal: "What's your email? (optional)"
     },
     canDecode: {
-      fun: "Quick question - can you actually read Hebrew letters, or are they still just squiggly lines to you?",
+      fun: "Can you actually read Hebrew letters, or are they still just squiggly lines to you?",
       formal: "Can you decode/read the Hebrew alphabet?"
     },
     hasStudied: {
-      fun: "Have you dabbled in Hebrew before, or is this your first rodeo?",
+      fun: "Have you studied Hebrew before?",
       formal: "Have you studied Hebrew before?"
     },
     studyDetails: {

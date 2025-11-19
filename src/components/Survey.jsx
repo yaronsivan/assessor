@@ -57,7 +57,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
 
     // Send to webhook
     try {
-      await fetch('https://hook.eu1.make.com/ltr8rb14fzymf5pdg7jlqvnvbdebgx6o', {
+      await fetch('https://hook.eu1.make.com/v9y7wnw4apbtyqlexiy5au316rm8fhoj', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +65,9 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          consent: formData.consent
+          consent: formData.consent,
+          timestamp: new Date().toISOString(),
+          eventType: 'user_started'
         })
       });
     } catch (error) {

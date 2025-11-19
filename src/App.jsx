@@ -142,7 +142,7 @@ function App() {
             )}
 
             {/* Genie Message Box */}
-            {genieMessage && (
+            {genieMessage && phase !== PHASES.RESULTS && (
               <div className="mb-3 bg-white text-gray-800 border-4 border-gray-800 px-4 py-3 shadow-pixel flex-shrink-0 mx-auto w-3/4">
                 <p className="text-lg text-center leading-snug font-bold">
                   {genieMessage}
@@ -204,7 +204,7 @@ function App() {
                   </span>
                 </div>
 
-                {genieMessage && (
+                {genieMessage && phase !== PHASES.RESULTS && (
                   <div className="bg-white text-gray-800 border-4 border-gray-800 px-3 py-2 shadow-pixel">
                     <p className="text-sm text-center leading-snug font-bold">
                       {genieMessage}
@@ -251,7 +251,7 @@ function App() {
                 )}
 
                 {/* Genie Message Box */}
-                {genieMessage && (
+                {genieMessage && phase !== PHASES.RESULTS && (
                   <div className="mb-4 bg-white text-gray-800 border-4 border-gray-800 px-4 py-3 shadow-pixel">
                     <p className="text-base text-center leading-snug font-bold">
                       {genieMessage}
