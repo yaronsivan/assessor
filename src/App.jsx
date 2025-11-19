@@ -234,11 +234,11 @@ function App() {
                 <Genie animated={false} />
               </div>
 
-              {/* Content overlay */}
-              <div className="relative z-10 p-4 flex flex-col min-h-full">
+              {/* Content overlay - anchored to bottom */}
+              <div className="relative z-10 p-4 flex flex-col justify-end min-h-full">
                 {/* Headline - only on welcome screen */}
                 {phase === PHASES.WELCOME && (
-                  <div className="mb-4 mt-4">
+                  <div className="mb-4">
                     <img
                       src={titleImage}
                       alt="The Great Assessor"
@@ -257,7 +257,7 @@ function App() {
                 )}
 
                 {/* Phase Content */}
-                <div className="flex-1">
+                <div className="mb-4">
                   {phase === PHASES.WELCOME && (
                     <Welcome onComplete={handleWelcomeComplete} />
                   )}
@@ -273,7 +273,7 @@ function App() {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-4 text-center py-3">
+                <div className="text-center py-3">
                   <p className="font-pixel text-white/60 text-xs tracking-wider leading-relaxed">
                     THE GREAT ASSESSOR V0.3.7<br/>© 2025
                   </p>
