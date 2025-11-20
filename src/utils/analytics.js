@@ -3,7 +3,13 @@
 // Initialize Facebook Pixel
 export const initFacebookPixel = () => {
   const pixelId = import.meta.env.VITE_FB_PIXEL_ID;
-  if (!pixelId) return;
+
+  if (!pixelId) {
+    console.log('Facebook Pixel: Not initialized - VITE_FB_PIXEL_ID not set');
+    return;
+  }
+
+  console.log('Facebook Pixel: Initializing with ID:', pixelId);
 
   // Facebook Pixel Code
   !function(f,b,e,v,n,t,s)
@@ -17,12 +23,19 @@ export const initFacebookPixel = () => {
 
   window.fbq('init', pixelId);
   window.fbq('track', 'PageView');
+  console.log('Facebook Pixel: Initialized and PageView tracked');
 };
 
 // Initialize Google Analytics 4
 export const initGA4 = () => {
   const measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
-  if (!measurementId) return;
+
+  if (!measurementId) {
+    console.log('Google Analytics: Not initialized - VITE_GA4_MEASUREMENT_ID not set');
+    return;
+  }
+
+  console.log('Google Analytics: Initializing with ID:', measurementId);
 
   // GA4 Script
   const script1 = document.createElement('script');
@@ -35,6 +48,7 @@ export const initGA4 = () => {
   window.gtag = gtag;
   gtag('js', new Date());
   gtag('config', measurementId);
+  console.log('Google Analytics: Initialized');
 };
 
 // Track Facebook Pixel event
@@ -53,9 +67,9 @@ export const trackGA4Event = (eventName, params = {}) => {
 
 // Combined tracking function
 export const trackEvent = (eventName, params = {}) => {
+  console.log('📊 Tracking event:', eventName, params);
   trackFBEvent(eventName, params);
   trackGA4Event(eventName, params);
-  console.log('Analytics event:', eventName, params);
 };
 
 // Specific event trackers
