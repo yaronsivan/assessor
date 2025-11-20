@@ -37,18 +37,25 @@ export const initGA4 = () => {
 
   console.log('Google Analytics: Initializing with ID:', measurementId);
 
-  // GA4 Script
-  const script1 = document.createElement('script');
-  script1.async = true;
-  script1.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-  document.head.appendChild(script1);
-
+  // Set up dataLayer and gtag function first
   window.dataLayer = window.dataLayer || [];
-  function gtag(){window.dataLayer.push(arguments);}
-  window.gtag = gtag;
-  gtag('js', new Date());
-  gtag('config', measurementId);
-  console.log('Google Analytics: Initialized');
+  window.gtag = function(){window.dataLayer.push(arguments);};
+  window.gtag('js', new Date());
+  window.gtag('config', measurementId);
+
+  // Then load the GA4 script
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+  script.onload = () => {
+    console.log('Google Analytics: Script loaded and initialized');
+  };
+  script.onerror = () => {
+    console.error('Google Analytics: Failed to load script');
+  };
+  document.head.appendChild(script);
+
+  console.log('Google Analytics: Configuration queued, script loading...');
 };
 
 // Track Facebook Pixel event
