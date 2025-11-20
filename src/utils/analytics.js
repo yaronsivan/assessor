@@ -28,10 +28,10 @@ export const initFacebookPixel = () => {
 
 // Initialize Google Analytics 4
 export const initGA4 = () => {
-  const measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
+  const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
 
   if (!measurementId) {
-    console.log('Google Analytics: Not initialized - VITE_GA4_MEASUREMENT_ID not set');
+    console.log('Google Analytics: Not initialized - VITE_GA_MEASUREMENT_ID not set');
     return;
   }
 

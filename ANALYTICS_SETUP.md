@@ -41,7 +41,7 @@ This app tracks user behavior using Facebook Pixel and Google Analytics 4 (GA4).
    - Environment: Production, Preview, Development
 
    **Variable 2:**
-   - Key: `VITE_GA4_MEASUREMENT_ID`
+   - Key: `VITE_GA_MEASUREMENT_ID`
    - Value: Your GA4 Measurement ID (e.g., `G-XXXXXXXXXX`)
    - Environment: Production, Preview, Development
 
@@ -69,7 +69,7 @@ If you want to test tracking locally:
 2. Add your tracking IDs:
    ```
    VITE_FB_PIXEL_ID=your_pixel_id
-   VITE_GA4_MEASUREMENT_ID=your_measurement_id
+   VITE_GA_MEASUREMENT_ID=your_measurement_id
    ```
 3. Restart your dev server
 
