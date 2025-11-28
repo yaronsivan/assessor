@@ -5,7 +5,7 @@ export function generateEmailContent(profile, results) {
   };
 
   const userName = capitalizeFirstLetter(profile?.name || 'friend');
-  const { recommendedLevel, finishedLevel } = results;
+  const { recommendedLevel, finishedLevel, beyondMaxLevel } = results;
 
   // Get the detailed analysis in a more conversational tone
   const analysis = generateEmailAnalysis(profile, results);
@@ -28,15 +28,24 @@ export function generateEmailContent(profile, results) {
   const assessmentBookingUrl = 'https://cal.com/ulpan-bayit-level-assessments/20-minute-hebrew-level-assessment';
   const whatsappUrl = `https://wa.me/972555578088?text=${encodeURIComponent(`Hi! My name is ${userName} and I just finished the level test online. I got level ${recommendedLevel}. I'd like to get more info and to set up an in-person level assessment. Toda!`)}`;
 
-  // Build the HTML email - simple text-based format, left-aligned like a normal email
-  let email = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Your Hebrew Level Assessment Results</title></head><body style="font-family: Arial, Helvetica, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0;"><div style="max-width: 600px;"><p style="margin: 0 0 1em 0;">Dear ${userName},</p><p style="margin: 0 0 1em 0;">Thank you for taking the time to complete our online level assessment! We really appreciate it.</p><p style="margin: 0 0 1em 0;">Below is a detailed analysis of how we determined your recommended starting level.</p><hr style="border: none; border-top: 1px solid #ccc; margin: 1.5em 0;"><p style="margin: 0 0 1em 0;"><strong>ASSESSMENT ANALYSIS</strong></p>${analysis}<hr style="border: none; border-top: 1px solid #ccc; margin: 1.5em 0;"><p style="margin: 0 0 1em 0;"><strong>NEXT STEPS</strong></p><p style="margin: 0 0 1em 0;">${finishedLevel === '—' ? `Based on our assessment, we recommend you start with level <strong>${recommendedLevel}</strong>.` : `Based on our assessment, it looks like you've completed level <strong>${finishedLevel}</strong> and are ready to start level <strong>${recommendedLevel}</strong>.`}</p><p style="margin: 0 0 1em 0;"><strong>If this feels right to you, here are your next steps:</strong></p><p style="margin: 0 0 1em 0;"><strong>📚 View Course Options:</strong><br>• <a href="${inPersonCourseUrl}" style="color: #0066cc;">In-Person Classes</a><br>• <a href="${onlineCourseUrl}" style="color: #0066cc;">Online Classes</a></p><p style="margin: 0 0 1em 0;"><strong>📅 Not Sure if This is Right?</strong><br>No problem! Schedule a FREE in-person level assessment with one of our amazing teachers:<br>• <a href="${assessmentBookingUrl}" style="color: #0066cc;">Book Online Assessment</a><br>• <a href="${whatsappUrl}" style="color: #25D366;">Contact us via WhatsApp</a></p><p style="margin: 0 0 1em 0;">We're here to help you on your Hebrew learning journey!</p><hr style="border: none; border-top: 1px solid #ccc; margin: 1.5em 0;"><p style="margin: 0 0 0.5em 0;"><strong>Best regards,</strong><br>The Ulpan Bayit Team</p><p style="margin: 0;">🌐 <a href="https://ulpan.co.il" style="color: #0066cc;">ulpan.co.il</a><br>📞 <a href="tel:+97233004070" style="color: #0066cc;">03-3004070</a><br>💬 <a href="https://wa.me/972555578088" style="color: #25D366;">WhatsApp: 055-557-8088</a></p></div></body></html>`;
+  // Build the HTML email - fully compact to avoid whitespace issues in email clients
+  let nextStepsText;
+  if (beyondMaxLevel) {
+    nextStepsText = `Impressive! Based on our assessment, you've mastered content through our highest standard level, <strong>${finishedLevel}</strong>. At your advanced level, we recommend scheduling a personal assessment with one of our experienced teachers. They'll help determine whether our ${finishedLevel} course is the right fit to polish your skills, or if a more customized learning path would better serve your goals.`;
+  } else if (finishedLevel === '—') {
+    nextStepsText = `Based on our assessment, we recommend you start with level <strong>${recommendedLevel}</strong>.`;
+  } else {
+    nextStepsText = `Based on our assessment, it looks like you've completed level <strong>${finishedLevel}</strong> and are ready to start level <strong>${recommendedLevel}</strong>.`;
+  }
+
+  let email = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Your Hebrew Level Assessment Results</title></head><body style="font-family: Arial, Helvetica, sans-serif; line-height: 1.5; color: #000000; margin: 0; padding: 0;"><div style="max-width: 600px; margin: 0; padding: 0;"><p style="margin: 1em 0;">Dear ${userName},</p><p style="margin: 1em 0;">Thank you for taking the time to complete our online level assessment! We really appreciate it.</p><p style="margin: 1em 0;">Below is a detailed analysis of how we determined your recommended starting level.</p><hr style="border: none; border-top: 1px solid #ccc; margin: 2em 0;"><p style="margin: 1em 0;"><strong>ASSESSMENT ANALYSIS</strong></p>${analysis}<hr style="border: none; border-top: 1px solid #ccc; margin: 2em 0;"><p style="margin: 1em 0;"><strong>NEXT STEPS</strong></p><p style="margin: 1em 0;">${nextStepsText}</p><p style="margin: 1em 0;"><strong>If this feels right to you, here are your next steps:</strong></p><p style="margin: 1em 0;"><strong>📚 View Course Options:</strong><br>• <a href="${inPersonCourseUrl}" style="color: #0066cc;">In-Person Classes</a><br>• <a href="${onlineCourseUrl}" style="color: #0066cc;">Online Classes</a></p><p style="margin: 1em 0;"><strong>📅 Not Sure if This is Right?</strong><br>No problem! Schedule a FREE in-person level assessment with one of our amazing teachers:<br>• <a href="${assessmentBookingUrl}" style="color: #0066cc;">Book Online Assessment</a><br>• <a href="${whatsappUrl}" style="color: #25D366;">Contact us via WhatsApp</a></p><p style="margin: 1em 0;">We're here to help you on your Hebrew learning journey!</p><hr style="border: none; border-top: 1px solid #ccc; margin: 2em 0;"><p style="margin: 1em 0;"><strong>Best regards,</strong><br>The Ulpan Bayit Team</p><p style="margin: 1em 0;">🌐 <a href="https://ulpan.co.il" style="color: #0066cc;">ulpan.co.il</a><br>📞 <a href="tel:+97233004070" style="color: #0066cc;">03-3004070</a><br>💬 <a href="https://wa.me/972555578088" style="color: #25D366;">WhatsApp: 055-557-8088</a></p></div></body></html>`;
 
   return email;
 }
 
 function generateEmailAnalysis(profile, results) {
   const { months, weeklyHours, trace, knowledgeSource, fluencyLevel, directHours } = profile;
-  const { finishedLevel, recommendedLevel, totalAsked, decisions, questionHistory } = results;
+  const { finishedLevel, recommendedLevel, totalAsked, decisions, questionHistory, beyondMaxLevel } = results;
 
   // Level descriptions
   const levelDescriptions = {
@@ -89,12 +98,12 @@ function generateEmailAnalysis(profile, results) {
 
   // Special case for extreme beginners
   if (totalAsked === 0) {
-    html += `<p style="margin: 0 0 1em 0;">During the background questions, it became clear that you haven't studied Hebrew before. Based on this, we concluded that you should start at the very beginning with level <strong>${recommendedLevel}</strong>. No assessment questions were needed.</p>`;
+    html += `<p>During the background questions, it became clear that you haven't studied Hebrew before. Based on this, we concluded that you should start at the very beginning with level <strong>${recommendedLevel}</strong>. No assessment questions were needed.</p>`;
 
     // Add what they'll learn
     const learningContent = levelDescriptions[recommendedLevel];
     if (learningContent) {
-      html += `<p style="margin: 0 0 1em 0;">In this level, you'll learn ${learningContent}.</p>`;
+      html += `<p>In this level, you'll learn ${learningContent}.</p>`;
     }
 
     return html;
@@ -109,7 +118,7 @@ function generateEmailAnalysis(profile, results) {
   };
 
   const sourceDesc = sourceDescriptions[knowledgeSource] || 'language study';
-  html += `<p style="margin: 0 0 1em 0;">Your Hebrew knowledge comes from ${sourceDesc}. `;
+  html += `<p>Your Hebrew knowledge comes from ${sourceDesc}. `;
 
   // Study details
   if (knowledgeSource === 'school') {
@@ -135,7 +144,7 @@ function generateEmailAnalysis(profile, results) {
 
   // Background assessment
   if (abilities.length > 0 || cannotDo.length > 0) {
-    html += `<p style="margin: 0 0 1em 0;">During the background questions, `;
+    html += `<p>During the background questions, `;
 
     if (abilities.length > 0) {
       html += `you mentioned you can `;
@@ -159,7 +168,7 @@ function generateEmailAnalysis(profile, results) {
     html += `</p>`;
   }
 
-  html += `<p style="margin: 0 0 1em 0;">Based on this information, we started the assessment with questions from level ${startingLevel}.</p>`;
+  html += `<p>Based on this information, we started the assessment with questions from level ${startingLevel}.</p>`;
 
   // Simplified summary - just count total correct/wrong per level
   const levelGroups = {};
@@ -180,34 +189,39 @@ function generateEmailAnalysis(profile, results) {
       return `${stats.correct} correct for ${level}${stats.wrong > 0 ? `, ${stats.wrong} wrong` : ''}`;
     });
 
-    html += `<p style="margin: 0 0 1em 0;">During the assessment, you had ${levelSummaries.join(', ')}. `;
+    html += `<p>During the assessment, you had ${levelSummaries.join(', ')}. `;
   }
 
   // Conclusion with what they'll learn
-  if (finishedLevel === '—') {
-    html += `Based on your performance, we think you should start with level <strong>${recommendedLevel}</strong>.`;
+  if (beyondMaxLevel) {
+    html += `Based on your performance, you've demonstrated mastery through our highest standard level, <strong>${finishedLevel}</strong>. At this advanced stage, an online test can only tell us so much - we'd love to meet you in person to understand your specific goals and find the perfect fit for your Hebrew journey.</p>`;
+  } else if (finishedLevel === '—') {
+    html += `Based on your performance, we think you should start with level <strong>${recommendedLevel}</strong>.</p>`;
+    // Add what they'll learn in the recommended level
+    const learningContent = levelDescriptions[recommendedLevel];
+    if (learningContent) {
+      html += `<p>In this level, you'll learn ${learningContent}.</p>`;
+    }
   } else {
-    html += `Based on your performance, we think you've finished level <strong>${finishedLevel}</strong> and should start with level <strong>${recommendedLevel}</strong>.`;
-  }
-  html += `</p>`;
-
-  // Add what they'll learn in the recommended level
-  const learningContent = levelDescriptions[recommendedLevel];
-  if (learningContent) {
-    html += `<p style="margin: 0 0 1em 0;">In this level, you'll learn ${learningContent}.</p>`;
+    html += `Based on your performance, we think you've finished level <strong>${finishedLevel}</strong> and should start with level <strong>${recommendedLevel}</strong>.</p>`;
+    // Add what they'll learn in the recommended level
+    const learningContent = levelDescriptions[recommendedLevel];
+    if (learningContent) {
+      html += `<p>In this level, you'll learn ${learningContent}.</p>`;
+    }
   }
 
   // Wrong answers
   const wrongAnswers = questionHistory.filter(q => !q.isCorrect);
   if (wrongAnswers.length > 0) {
-    html += `<p style="margin: 0 0 0.5em 0;"><strong>Questions you got wrong:</strong></p><ul style="font-size: 14px; margin: 0 0 1em 0; padding-left: 1.5em;">`;
+    html += `<p><strong>Questions you got wrong:</strong></p><ul style="font-size: 14px;">`;
     wrongAnswers.forEach((q, idx) => {
-      html += `<li style="margin-bottom: 0.5em;"><em>${q.questionText}</em><br>`;
+      html += `<li><em>${q.questionText}</em><br>`;
       html += `Your answer: ${q.userAnswer} | Correct answer: ${q.correctAnswer}</li>`;
     });
     html += `</ul>`;
   } else {
-    html += `<p style="margin: 0 0 1em 0;"><strong>Great job!</strong> You answered all questions correctly!</p>`;
+    html += `<p><strong>Great job!</strong> You answered all questions correctly!</p>`;
   }
 
   return html;

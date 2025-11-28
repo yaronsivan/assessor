@@ -1,14 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getMessage } from '../config/messages';
 import { generateAssessmentReport, generateEmailContent } from '../utils/assessmentReport';
 import CourseSelectionModal from './CourseSelectionModal';
 import LevelAssessmentModal from './LevelAssessmentModal';
 import { trackAssessmentCompleted, trackViewCourses, trackScheduleAssessment } from '../utils/analytics';
 
+// Track sent webhooks at module level to survive StrictMode remounts
+const sentWebhooks = new Set();
+
 function Results({ mode = 'fun', profile, results, onRestart }) {
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
-  const webhookSent = useRef(false);
 
   // Keep report generation for future email use
   const report = generateAssessmentReport(profile, results);
@@ -33,8 +35,10 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
 
   // Send results to Make.com webhook when component mounts - only once
   useEffect(() => {
-    if (webhookSent.current) return; // Prevent duplicate sends
-    webhookSent.current = true;
+    // Use email as unique key to prevent duplicate sends (survives StrictMode remounts)
+    const webhookKey = `assessment_${profile?.email}`;
+    if (sentWebhooks.has(webhookKey)) return;
+    sentWebhooks.add(webhookKey);
 
     const sendResultsWebhook = async () => {
       try {
@@ -131,17 +135,32 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
   };
 
   const getCompleteMessage = () => {
-    const finishedSkills = levelSkills[results.finishedLevel];
-    const nextSkills = levelSkills[results.recommendedLevel];
     const userName = capitalizeFirstLetter(profile?.name || 'friend');
+
+    // Check if user is beyond our highest level
+    if (results.beyondMaxLevel) {
+      return (
+        <>
+          My magical senses tell me that you've completed our highest level, <span className="bg-yellow-300 text-purple-900 px-2 py-1 font-bold">{results.finishedLevel}</span>, and you're beyond our standard curriculum! Want to know why? Check your email for the detailed results! Want your level assessed with a non-genie? Set up a level assessment with one of our HUMAN teachers!
+        </>
+      );
+    }
 
     if (results.finishedLevel === '—') {
       // New learner - different message structure
-      return `Greetings ${userName}, thanks for letting me assess your level! You're just starting your Hebrew journey, and I recommend you begin with level ${results.recommendedLevel}. In this level, you'll learn ${nextSkills?.toLearn || 'the basics'}. If you think I got it right - you can jump to the courses and schedules below. If not, we're happy to set you up for a free level assessment with one of our amazing teachers.`;
+      return (
+        <>
+          My magical senses tell me that you should start with level <span className="bg-yellow-300 text-purple-900 px-2 py-1 font-bold">{results.recommendedLevel}</span>. Want to know why? Check your email for the detailed results! Feel this is right? Check the course schedule for your level below! Want your level assessed with a non-genie? Set up a level assessment with one of our HUMAN teachers!
+        </>
+      );
     }
 
     // Experienced learner
-    return `Greetings ${userName}, thanks for letting me assess your level! Based on your responses, it seems you've completed level ${results.finishedLevel} and are ready to start level ${results.recommendedLevel}. You've already mastered ${finishedSkills?.mastered || 'previous material'}, and in the next level you'll learn ${nextSkills?.toLearn || 'new material'}. If you think I got it right - you can jump to the courses and schedules below. If not, we're happy to set you up for a free level assessment with one of our amazing teachers.`;
+    return (
+      <>
+        My magical senses tell me that you've finished level <span className="bg-yellow-300 text-purple-900 px-2 py-1 font-bold">{results.finishedLevel}</span> and should start with level <span className="bg-yellow-300 text-purple-900 px-2 py-1 font-bold">{results.recommendedLevel}</span>. Want to know why? Check your email for the detailed results! Feel this is right? Check the course schedule for your level below! Want your level assessed with a non-genie? Set up a level assessment with one of our HUMAN teachers!
+      </>
+    );
   };
 
   return (
@@ -160,21 +179,24 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
 
         {/* Action Buttons */}
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
-          <button
-            onClick={() => {
-              trackViewCourses(results.recommendedLevel);
-              setIsCourseModalOpen(true);
-            }}
-            className="
-              bg-purple-500 hover:bg-purple-600
-              text-white text-xl font-bold
-              px-10 py-4 border-4 border-purple-700
-              shadow-pixel-lg active:translate-y-1 active:shadow-pixel
-              transition-all duration-200
-            "
-          >
-            View Courses
-          </button>
+          {/* Only show View Courses button if not beyond max level */}
+          {!results.beyondMaxLevel && (
+            <button
+              onClick={() => {
+                trackViewCourses(results.recommendedLevel);
+                setIsCourseModalOpen(true);
+              }}
+              className="
+                bg-purple-500 hover:bg-purple-600
+                text-white text-xl font-bold
+                px-10 py-4 border-4 border-purple-700
+                shadow-pixel-lg active:translate-y-1 active:shadow-pixel
+                transition-all duration-200
+              "
+            >
+              View Courses
+            </button>
+          )}
 
           <button
             onClick={() => {
@@ -205,11 +227,6 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
           </p>
         </div>
 
-        <div className="mt-8 text-center">
-          <p className="text-purple-200 text-lg">
-            {getMessage('results.thanks', mode)}
-          </p>
-        </div>
       </div>
 
       {/* Modals */}
