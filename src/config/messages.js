@@ -105,8 +105,8 @@ export const MESSAGES = {
       formal: "Assessment complete, {name}. Here are your results."
     },
     thanks: {
-      fun: "Thanks for helping me escape for a moment! Now I must return to my lamp... until someone else needs their level assessed! 🧞‍♂️✨",
-      formal: "Thank you for completing the Hebrew Level Assessment."
+      fun: "",
+      formal: ""
     }
   }
 };
