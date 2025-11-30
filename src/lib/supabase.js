@@ -17,21 +17,18 @@ function getDeviceType() {
   return 'desktop';
 }
 
-// Fetch geolocation from IP (using free ip-api.com service)
+// Fetch geolocation from IP (using ipapi.co which supports HTTPS)
 async function getGeolocation() {
   try {
-    const response = await fetch('http://ip-api.com/json/?fields=status,country,regionName,city,query');
+    const response = await fetch('https://ipapi.co/json/');
     if (!response.ok) return null;
     const data = await response.json();
-    if (data.status === 'success') {
-      return {
-        geo_country: data.country,
-        geo_region: data.regionName,
-        geo_city: data.city,
-        ip_address: data.query
-      };
-    }
-    return null;
+    return {
+      geo_country: data.country_name,
+      geo_region: data.region,
+      geo_city: data.city,
+      ip_address: data.ip
+    };
   } catch (err) {
     console.error('Failed to get geolocation:', err);
     return null;
