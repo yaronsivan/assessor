@@ -4,11 +4,12 @@ import { useQuestions } from '../hooks/useQuestions';
 import { selectLevelQuestions, evaluateBatch } from '../hooks/useGameEngine';
 import { LEVELS, capIdx } from '../engine/levels';
 import { getMessage } from '../config/messages';
+import { updateAssessmentProgress } from '../lib/supabase';
 
 const MIN_QUESTIONS = 6;
 const HARD_CAP = 14;
 
-function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChange }) {
+function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChange, assessmentId }) {
   const { questions, loading, error } = useQuestions();
   const [gameState, setGameState] = useState('init');
   const [currentQuestion, setCurrentQuestion] = useState(null);
@@ -84,7 +85,10 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
     const remaining = HARD_CAP - totalAsked;
     const batchQs = selectLevelQuestions(questions, lvl, used, Math.min(5, remaining));
 
+    console.log('startBoundaryBatch:', { lvl, levelName: LEVELS[lvl], remaining, foundQuestions: batchQs.length });
+
     if (batchQs.length === 0) {
+      console.log('No questions available at this level, finishing game');
       finishGame();
       return;
     }
@@ -98,6 +102,14 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
 
   const startSupportiveQuestions = (lvl, need) => {
     const supportQs = selectLevelQuestions(questions, lvl, used, need);
+    console.log('startSupportiveQuestions:', { lvl, levelName: LEVELS[lvl], need, foundQuestions: supportQs.length });
+
+    if (supportQs.length === 0) {
+      console.log('No supportive questions available, finishing game');
+      finishGame();
+      return;
+    }
+
     setBatchQuestions(supportQs.map(q => ({ ...q, levelIdx: lvl, isSupportive: true })));
     setCurrentQuestionIndex(0);
     setCurrentQuestion(supportQs.length > 0 ? { ...supportQs[0], levelIdx: lvl, isSupportive: true } : null);
@@ -116,14 +128,21 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
     });
 
     // Track this question and answer
-    setQuestionHistory(prev => [...prev, {
+    const newHistoryEntry = {
       questionText: currentQuestion.Sentence,
       level: LEVELS[currentQuestion.levelIdx] || 'Unknown',
       correctAnswer: currentQuestion.Correct,
       userAnswer: selectedOption,
       isCorrect,
       phase: currentQuestion.isWarmup ? 'warmup' : currentQuestion.isSupportive ? 'supportive' : 'boundary'
-    }]);
+    };
+
+    setQuestionHistory(prev => {
+      const newHistory = [...prev, newHistoryEntry];
+      // Save progress to Supabase (non-blocking)
+      updateAssessmentProgress(assessmentId, totalAsked, newHistory);
+      return newHistory;
+    });
 
     // Mark question as used
     setUsed(prev => new Set([...prev, currentQuestion.__id]));
@@ -202,16 +221,24 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
     const decision = `${LEVELS[levelIdx]}[+${stats.correct}/-${stats.wrong}]→${outcome}`;
     setDecisions(prev => [...prev, decision]);
 
+    console.log('processBatchOutcome:', { levelIdx, levelName: LEVELS[levelIdx], outcome, stats });
+
     if (outcome === 'promote') {
       setJustPromotedFrom(levelIdx);
-      setLastPassedIdx(Math.max(lastPassedIdx, levelIdx));
+      const newLastPassedIdx = Math.max(lastPassedIdx, levelIdx);
+      setLastPassedIdx(newLastPassedIdx);
+
+      console.log('Promoted! Checking if at max level:', { levelIdx, maxLevel: LEVELS.length - 1, totalAsked, HARD_CAP });
 
       if (levelIdx >= LEVELS.length - 1 || totalAsked >= HARD_CAP) {
-        finishGame();
+        console.log('At max level or question limit, finishing game');
+        // Pass the correct finishedIdx instead of relying on state
+        finishGame(false, newLastPassedIdx);
         return;
       }
 
       const newLevel = levelIdx + 1;
+      console.log('Moving to next level:', { newLevel, levelName: LEVELS[newLevel] });
       setLevelIdx(newLevel);
       setTimeout(() => startBoundaryBatch(newLevel), 1000);
       return;
@@ -253,21 +280,37 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
     finishGame();
   };
 
-  const finishGame = (extremeFloorFinalize = false) => {
-    let finishedIdx = lastPassedIdx;
+  const finishGame = (extremeFloorFinalize = false, passedFinishedIdx = null) => {
+    // Use passed value if provided, otherwise use state
+    let finishedIdx = passedFinishedIdx !== null ? passedFinishedIdx : lastPassedIdx;
     let startNextIdx = Math.max(0, finishedIdx + 1);
+
+    console.log('finishGame called:', { extremeFloorFinalize, finishedIdx, startNextIdx, totalAsked, MIN_QUESTIONS });
 
     if (extremeFloorFinalize || profile.extremeBeginner) {
       finishedIdx = -1;
       startNextIdx = 0;
     }
 
+    // Cap startNextIdx to the maximum level index
+    startNextIdx = capIdx(startNextIdx);
+    console.log('After capIdx:', { startNextIdx });
+
     // Check if we need supportive questions
     if (!extremeFloorFinalize && !profile.extremeBeginner && totalAsked < MIN_QUESTIONS) {
       const need = Math.min(MIN_QUESTIONS - totalAsked, HARD_CAP - totalAsked);
-      startSupportiveQuestions(Math.max(0, startNextIdx - 1), need);
+      // Use startNextIdx for supportive questions (the level they'll start next time)
+      // This ensures we give questions at the appropriate level
+      const supportiveLevel = startNextIdx;
+      console.log('Need supportive questions:', { need, supportiveLevel, levelName: LEVELS[supportiveLevel] });
+      startSupportiveQuestions(supportiveLevel, need);
       return;
     }
+
+    console.log('Game complete - calling onComplete');
+
+    // Check if user is beyond the highest level we have
+    const beyondMaxLevel = finishedIdx >= LEVELS.length - 1;
 
     // Game complete
     onComplete({
@@ -277,7 +320,8 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
       recommendedIdx: startNextIdx,
       totalAsked,
       decisions,
-      questionHistory
+      questionHistory,
+      beyondMaxLevel
     });
   };
 

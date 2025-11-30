@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { runSurvey } from '../hooks/useSurvey';
 import { getMessage } from '../config/messages';
 import { trackAssessmentStarted } from '../utils/analytics';
+import { saveAssessmentStart, updateAssessmentProfile } from '../lib/supabase';
 
-function Survey({ mode = 'fun', onComplete, onMessageChange }) {
+function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChange }) {
   const [step, setStep] = useState('name');
   const [formData, setFormData] = useState({
     name: '',
@@ -55,6 +56,12 @@ function Survey({ mode = 'fun', onComplete, onMessageChange }) {
 
     setEmailError('');
     setIsSubmittingWebhook(true);
+
+    // Save to Supabase first (this creates the assessment record)
+    const assessmentId = await saveAssessmentStart(formData.name, formData.email);
+    if (assessmentId && onAssessmentIdChange) {
+      onAssessmentIdChange(assessmentId);
+    }
 
     // Send to webhook
     try {

@@ -1,4 +1,6 @@
-function CourseSelectionModal({ isOpen, onClose, recommendedLevel }) {
+import { trackResultsAction } from '../lib/supabase';
+
+function CourseSelectionModal({ isOpen, onClose, recommendedLevel, assessmentId }) {
   if (!isOpen) return null;
 
   // Extract the level code from the full level name
@@ -22,11 +24,13 @@ function CourseSelectionModal({ isOpen, onClose, recommendedLevel }) {
   const levelCode = getLevelCode(recommendedLevel);
 
   const handleInPerson = () => {
+    trackResultsAction(assessmentId, 'select_course_type', { courseType: 'in_person', level: recommendedLevel });
     window.open(`https://ulpan.co.il/course/${levelCode}/`, '_blank');
     onClose();
   };
 
   const handleOnline = () => {
+    trackResultsAction(assessmentId, 'select_course_type', { courseType: 'online', level: recommendedLevel });
     window.open(`https://ulpan.co.il/course/o-${levelCode}/`, '_blank');
     onClose();
   };

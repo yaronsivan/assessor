@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import Genie from './components/Genie';
 import Welcome from './components/Welcome';
@@ -10,6 +10,7 @@ import Results from './components/Results';
 import titleImage from './assets/great assessor2.png';
 import { getMessage } from './config/messages';
 import { initFacebookPixel, initGA4 } from './utils/analytics';
+import { trackAbandonment } from './lib/supabase';
 
 const PHASES = {
   WELCOME: 'welcome',
@@ -28,12 +29,32 @@ function App() {
   const [gamePhase, setGamePhase] = useState('boundary'); // warmup, boundary, supportive
   const [questionCount, setQuestionCount] = useState(0);
   const [surveyMessage, setSurveyMessage] = useState(null);
+  const [assessmentId, setAssessmentId] = useState(null);
+  const currentPhaseRef = useRef(phase);
+
+  // Keep ref in sync with phase for abandonment tracking
+  useEffect(() => {
+    currentPhaseRef.current = phase;
+  }, [phase]);
 
   // Initialize analytics on app load
   useEffect(() => {
     initFacebookPixel();
     initGA4();
   }, []);
+
+  // Track abandonment when user leaves
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Only track if we have an assessment and it's not completed
+      if (assessmentId && currentPhaseRef.current !== PHASES.RESULTS) {
+        trackAbandonment(assessmentId, currentPhaseRef.current);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [assessmentId]);
 
   const handleWelcomeComplete = (selectedMode, showStory = false) => {
     setMode(selectedMode);
@@ -79,6 +100,7 @@ function App() {
     setProfile(null);
     setGameResults(null);
     setMode('fun');
+    setAssessmentId(null);
   };
 
   const getGenieMessage = () => {
@@ -164,7 +186,7 @@ function App() {
                   <Welcome onComplete={handleWelcomeComplete} />
                 )}
                 {phase === PHASES.SURVEY && (
-                  <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} />
+                  <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} />
                 )}
                 {phase === PHASES.GATE_FAIL && (
                   <GateFail mode={mode} profile={profile} onRestart={handleRestart} />
@@ -176,10 +198,11 @@ function App() {
                     onComplete={handleGameComplete}
                     onPhaseChange={setGamePhase}
                     onQuestionChange={setQuestionCount}
+                    assessmentId={assessmentId}
                   />
                 )}
                 {phase === PHASES.RESULTS && (
-                  <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} />
+                  <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} />
                 )}
               </div>
             </div>
@@ -229,6 +252,7 @@ function App() {
                 onComplete={handleGameComplete}
                 onPhaseChange={setGamePhase}
                 onQuestionChange={setQuestionCount}
+                assessmentId={assessmentId}
               />
             </div>
           </>
@@ -272,13 +296,13 @@ function App() {
                     <Welcome onComplete={handleWelcomeComplete} />
                   )}
                   {phase === PHASES.SURVEY && (
-                    <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} />
+                    <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} />
                   )}
                   {phase === PHASES.GATE_FAIL && (
                     <GateFail mode={mode} profile={profile} onRestart={handleRestart} />
                   )}
                   {phase === PHASES.RESULTS && (
-                    <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} />
+                    <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} />
                   )}
                 </div>
 

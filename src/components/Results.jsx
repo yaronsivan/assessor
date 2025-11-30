@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getMessage } from '../config/messages';
 import { generateAssessmentReport, generateEmailContent } from '../utils/assessmentReport';
 import CourseSelectionModal from './CourseSelectionModal';
 import LevelAssessmentModal from './LevelAssessmentModal';
 import { trackAssessmentCompleted, trackViewCourses, trackScheduleAssessment } from '../utils/analytics';
+import { saveAssessmentComplete, trackResultsAction, trackResultsExit } from '../lib/supabase';
 
 // Track sent webhooks at module level to survive StrictMode remounts
 const sentWebhooks = new Set();
 
-function Results({ mode = 'fun', profile, results, onRestart }) {
+function Results({ mode = 'fun', profile, results, onRestart, assessmentId: propAssessmentId }) {
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
+  const [assessmentId, setAssessmentId] = useState(propAssessmentId);
+  const resultsStartTime = useRef(Date.now());
 
   // Keep report generation for future email use
   const report = generateAssessmentReport(profile, results);
@@ -40,7 +43,10 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
     if (sentWebhooks.has(webhookKey)) return;
     sentWebhooks.add(webhookKey);
 
-    const sendResultsWebhook = async () => {
+    const sendResultsAndSave = async () => {
+      let webhookResult = { status: 'not_sent', response: null, sentAt: null };
+
+      // Send webhook to Make.com
       try {
         const payload = {
           name: profile?.name,
@@ -71,19 +77,60 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
           body: JSON.stringify(payload)
         });
 
-        console.log('Webhook response status:', response.status);
         const responseText = await response.text();
+        console.log('Webhook response status:', response.status);
         console.log('Webhook response:', responseText);
+
+        webhookResult = {
+          status: response.ok ? 'success' : `error_${response.status}`,
+          response: responseText.substring(0, 500), // Limit response size
+          sentAt: new Date().toISOString()
+        };
       } catch (error) {
         console.error('Failed to send results webhook:', error);
+        webhookResult = {
+          status: 'failed',
+          response: error.message,
+          sentAt: new Date().toISOString()
+        };
+      }
+
+      // Save to Supabase (with webhook result) - use existing ID if available
+      const id = await saveAssessmentComplete(propAssessmentId, profile, results, webhookResult);
+      if (id && !propAssessmentId) {
+        setAssessmentId(id);
       }
     };
 
-    sendResultsWebhook();
+    sendResultsAndSave();
 
     // Track assessment completion
     trackAssessmentCompleted(results.recommendedLevel);
+
+    // Set up page exit tracking
+    const handleBeforeUnload = () => {
+      // This will be called with the assessmentId from closure or state
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []); // Empty dependency array means this runs once when component mounts
+
+  // Track page exit when assessmentId is available
+  useEffect(() => {
+    if (!assessmentId) return;
+
+    const handleBeforeUnload = () => {
+      trackResultsExit(assessmentId, resultsStartTime.current);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Also track on component unmount (e.g., when they click "Start Over")
+      trackResultsExit(assessmentId, resultsStartTime.current);
+    };
+  }, [assessmentId]);
 
   // Map levels to skills based on Ulpan Bayit's curriculum
   const levelSkills = {
@@ -184,6 +231,7 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
             <button
               onClick={() => {
                 trackViewCourses(results.recommendedLevel);
+                trackResultsAction(assessmentId, 'view_courses', { level: results.recommendedLevel });
                 setIsCourseModalOpen(true);
               }}
               className="
@@ -201,6 +249,7 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
           <button
             onClick={() => {
               trackScheduleAssessment(results.recommendedLevel);
+              trackResultsAction(assessmentId, 'schedule_assessment', { level: results.recommendedLevel });
               setIsAssessmentModalOpen(true);
             }}
             className="
@@ -234,6 +283,7 @@ function Results({ mode = 'fun', profile, results, onRestart }) {
         isOpen={isCourseModalOpen}
         onClose={() => setIsCourseModalOpen(false)}
         recommendedLevel={results.recommendedLevel}
+        assessmentId={assessmentId}
       />
 
       <LevelAssessmentModal
