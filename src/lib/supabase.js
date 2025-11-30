@@ -3,15 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://svgdyrsfxcausecwrgbc.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2Z2R5cnNmeGNhdXNlY3dyZ2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0ODE0MTYsImV4cCI6MjA4MDA1NzQxNn0.5mauFuooWrYgzqRliGGBTcD0okrnNJzZklfwbLVyOyE';
 
-// Debug: log what values we're using (only first/last chars of key for security)
-console.log('Supabase init:', {
-  url: supabaseUrl,
-  keyStart: supabaseAnonKey?.substring(0, 20),
-  keyEnd: supabaseAnonKey?.substring(supabaseAnonKey.length - 10),
-  keyLength: supabaseAnonKey?.length,
-  fromEnv: !!import.meta.env.VITE_SUPABASE_ANON_KEY
-});
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Helper to detect device type
