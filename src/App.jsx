@@ -7,6 +7,7 @@ import Survey from './components/Survey';
 import GateFail from './components/GateFail';
 import Game from './components/Game';
 import Results from './components/Results';
+import Stats from './components/Stats';
 import titleImage from './assets/great assessor2.png';
 import { getMessage } from './config/messages';
 import { initFacebookPixel, initGA4 } from './utils/analytics';
@@ -21,7 +22,18 @@ const PHASES = {
   RESULTS: 'results'
 };
 
-function App() {
+// DEV-ONLY: Stats wrapper component
+function StatsWrapper() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const showStats = import.meta.env.DEV && urlParams.has('stats');
+
+  if (showStats) {
+    return <Stats />;
+  }
+  return <MainApp />;
+}
+
+function MainApp() {
   // Check for URL parameters (email from landing page)
   const urlParams = new URLSearchParams(window.location.search);
   const initialEmail = urlParams.get('email') || '';
@@ -326,4 +338,4 @@ function App() {
   );
 }
 
-export default App;
+export default StatsWrapper;

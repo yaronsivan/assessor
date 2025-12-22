@@ -21,6 +21,15 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
   const [currentValidationQuestion, setCurrentValidationQuestion] = useState(null);
   const [emailError, setEmailError] = useState('');
   const [isSubmittingWebhook, setIsSubmittingWebhook] = useState(false);
+  const [localAssessmentId, setLocalAssessmentId] = useState(null);
+
+  // Helper to save profile data to Supabase before completing
+  const completeWithProfileSave = async (profile) => {
+    if (localAssessmentId) {
+      await updateAssessmentProfile(localAssessmentId, profile);
+    }
+    onComplete(profile);
+  };
 
   const isValidEmail = (email) => {
     if (!email) return false; // Email is now required
@@ -34,9 +43,12 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     // If email was pre-filled from URL, skip email step entirely
     if (initialEmail) {
       // Save to Supabase and send webhook in background
-      const assessmentId = await saveAssessmentStart(formData.name, initialEmail);
-      if (assessmentId && onAssessmentIdChange) {
-        onAssessmentIdChange(assessmentId);
+      const newAssessmentId = await saveAssessmentStart(formData.name, initialEmail);
+      if (newAssessmentId) {
+        setLocalAssessmentId(newAssessmentId);
+        if (onAssessmentIdChange) {
+          onAssessmentIdChange(newAssessmentId);
+        }
       }
 
       // Send webhook (don't await - let it run in background)
@@ -83,9 +95,12 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     setIsSubmittingWebhook(true);
 
     // Save to Supabase first (this creates the assessment record)
-    const assessmentId = await saveAssessmentStart(formData.name, formData.email);
-    if (assessmentId && onAssessmentIdChange) {
-      onAssessmentIdChange(assessmentId);
+    const newAssessmentId = await saveAssessmentStart(formData.name, formData.email);
+    if (newAssessmentId) {
+      setLocalAssessmentId(newAssessmentId);
+      if (onAssessmentIdChange) {
+        onAssessmentIdChange(newAssessmentId);
+      }
     }
 
     // Send to webhook
@@ -120,7 +135,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     setFormData({ ...formData, canDecode: answer });
     if (answer === 'no') {
       // Complete immediately for users who can't decode - treat as complete beginners
-      onComplete({
+      completeWithProfileSave({
         gateFail: false,
         name: formData.name,
         email: formData.email,
@@ -170,7 +185,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
       weeklyHours,
       mode,
       (question) => setCurrentValidationQuestion(question),
-      (profile) => onComplete({
+      (profile) => completeWithProfileSave({
         ...profile,
         knowledgeSource: formData.knowledgeSource,
         fluencyLevel: level
@@ -207,7 +222,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
       weeklyHours,
       mode,
       (question) => setCurrentValidationQuestion(question),
-      (profile) => onComplete({
+      (profile) => completeWithProfileSave({
         ...profile,
         knowledgeSource: formData.knowledgeSource,
         totalHours,
