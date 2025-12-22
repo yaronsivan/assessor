@@ -430,7 +430,7 @@ export default function Stats() {
           </div>
 
           {/* Date Range Filter */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 print:hidden">
             {[
               { value: 'all', label: 'All Time' },
               { value: '30d', label: 'Last 30d' },
@@ -450,9 +450,15 @@ export default function Stats() {
             ))}
             <button
               onClick={fetchStats}
-              className="px-4 py-2 text-sm font-bold bg-green-600 border-4 border-green-800 text-white hover:bg-green-500"
+              className="px-4 py-2 text-sm font-bold bg-green-600 border-4 border-green-800 text-white hover:bg-green-500 print:hidden"
             >
               Refresh
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 text-sm font-bold bg-blue-600 border-4 border-blue-800 text-white hover:bg-blue-500 print:hidden"
+            >
+              Save as PDF
             </button>
           </div>
         </div>
@@ -629,7 +635,7 @@ export default function Stats() {
       </div>
 
       {/* Footer */}
-      <div className="max-w-7xl mx-auto mt-8 text-center space-y-2">
+      <div className="max-w-7xl mx-auto mt-8 text-center space-y-2 print:hidden">
         <a
           href="/"
           className="inline-block px-4 py-2 text-sm font-bold bg-white/10 border-4 border-white/20 text-white/80 hover:bg-white/20"
@@ -639,6 +645,12 @@ export default function Stats() {
         <p className="text-white/40 text-xs">
           DEV MODE ONLY - This page is not accessible in production
         </p>
+      </div>
+
+      {/* Print header - only visible when printing */}
+      <div className="hidden print:block text-center mb-4">
+        <h1 className="text-2xl font-bold">Genie Analytics Report</h1>
+        <p className="text-sm text-gray-600">Generated: {new Date().toLocaleDateString()}</p>
       </div>
     </div>
   );
