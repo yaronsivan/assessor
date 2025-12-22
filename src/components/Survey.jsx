@@ -4,12 +4,12 @@ import { getMessage } from '../config/messages';
 import { trackAssessmentStarted } from '../utils/analytics';
 import { saveAssessmentStart, updateAssessmentProfile } from '../lib/supabase';
 
-function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChange }) {
+function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChange, initialEmail = '' }) {
   const [step, setStep] = useState('name');
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    consent: false,
+    email: initialEmail,
+    consent: Boolean(initialEmail), // Auto-consent if coming from landing page with email
     canDecode: null,
     knowledgeSource: null, // 'school', 'home', 'religious', 'streets'
     months: '',
@@ -27,9 +27,34 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
   };
 
-  const handleNameSubmit = (e) => {
+  const handleNameSubmit = async (e) => {
     e.preventDefault();
-    if (formData.name.trim()) {
+    if (!formData.name.trim()) return;
+
+    // If email was pre-filled from URL, skip email step entirely
+    if (initialEmail) {
+      // Save to Supabase and send webhook in background
+      const assessmentId = await saveAssessmentStart(formData.name, initialEmail);
+      if (assessmentId && onAssessmentIdChange) {
+        onAssessmentIdChange(assessmentId);
+      }
+
+      // Send webhook (don't await - let it run in background)
+      fetch('https://hook.eu1.make.com/v9y7wnw4apbtyqlexiy5au316rm8fhoj', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: initialEmail,
+          consent: true,
+          timestamp: new Date().toISOString(),
+          eventType: 'user_started'
+        })
+      }).catch(err => console.error('Webhook failed:', err));
+
+      trackAssessmentStarted();
+      setStep('canDecode');
+    } else {
       setStep('email');
     }
   };

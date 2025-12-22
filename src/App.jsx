@@ -22,7 +22,12 @@ const PHASES = {
 };
 
 function App() {
-  const [phase, setPhase] = useState(PHASES.WELCOME);
+  // Check for URL parameters (email from landing page)
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialEmail = urlParams.get('email') || '';
+  const hasEmailParam = Boolean(initialEmail);
+
+  const [phase, setPhase] = useState(hasEmailParam ? PHASES.SURVEY : PHASES.WELCOME);
   const [profile, setProfile] = useState(null);
   const [gameResults, setGameResults] = useState(null);
   const [mode, setMode] = useState('fun'); // 'fun' or 'formal'
@@ -186,7 +191,7 @@ function App() {
                   <Welcome onComplete={handleWelcomeComplete} />
                 )}
                 {phase === PHASES.SURVEY && (
-                  <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} />
+                  <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} initialEmail={initialEmail} />
                 )}
                 {phase === PHASES.GATE_FAIL && (
                   <GateFail mode={mode} profile={profile} onRestart={handleRestart} />
@@ -296,7 +301,7 @@ function App() {
                     <Welcome onComplete={handleWelcomeComplete} />
                   )}
                   {phase === PHASES.SURVEY && (
-                    <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} />
+                    <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} initialEmail={initialEmail} />
                   )}
                   {phase === PHASES.GATE_FAIL && (
                     <GateFail mode={mode} profile={profile} onRestart={handleRestart} />
