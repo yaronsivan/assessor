@@ -180,14 +180,23 @@ recommendedLevel = finishedLevel + 1  // Where to START studying
 ## Integrations
 
 ### Supabase
-- **Table:** `assessments`
+- **Table:** `assessments` (the ONLY table used by this app)
 - **Tracks:** Full user journey, all Q&A, decisions, time spent, actions
+- **Key columns:**
+  - User: `name`, `email`, `device_type`, `geo_country`, `referrer`
+  - Profile: `knowledge_source`, `fluency_level`, `months_studied`, `weekly_hours`, `total_hours`
+  - Results: `finished_level`, `recommended_level`, `question_history`, `decisions`
+  - Actions: `clicked_view_courses`, `clicked_schedule_assessment`, `actions_log`
+  - Timing: `duration_seconds`, `time_on_results_seconds`, `abandoned_at`
 - **Functions:**
-  - `saveAssessmentStart()` - Create record
+  - `saveAssessmentStart()` - Create record with referrer tracking
+  - `updateAssessmentProfile()` - Save survey profile data
   - `updateAssessmentProgress()` - Track questions
   - `saveAssessmentComplete()` - Final results
   - `trackResultsAction()` - Button clicks
   - `trackAbandonment()` - Page exits
+
+**IMPORTANT:** The Supabase database has other tables (lp_sessions, lp_page_events, lp_leads, etc.) that are used by a DIFFERENT landing page project. These `lp_*` tables are completely unrelated to this assessor app - do not touch them.
 
 ### Make.com Webhooks
 1. **User Started:** `v9y7wnw4apbtyqlexiy5au316rm8fhoj`
@@ -275,6 +284,12 @@ npm run dev
 http://localhost:5173/?email=test@example.com
 ```
 
+**Dev-only Stats Dashboard:**
+```
+http://localhost:5173/?stats
+```
+Analytics page showing funnel, level distribution, traffic sources, question performance, and more. Only accessible in development mode (`import.meta.env.DEV`).
+
 ---
 
 ## Key Files Quick Reference
@@ -283,7 +298,8 @@ http://localhost:5173/?email=test@example.com
 |------|---------|
 | `App.jsx` | Phase management, layouts, URL params |
 | `Game.jsx` | THE ALGORITHM - all assessment logic |
-| `Survey.jsx` | User profiling, 7 steps |
+| `Survey.jsx` | User profiling, 7 steps, saves profile to Supabase |
+| `Stats.jsx` | Dev-only analytics dashboard |
 | `Results.jsx` | Final display, reports, modals |
 | `supabase.js` | All database operations |
 | `assessmentReport.js` | Email/text generation |

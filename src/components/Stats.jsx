@@ -331,6 +331,38 @@ export default function Stats() {
     // 14. Extreme Beginners (finished level is "—")
     const extremeBeginners = assessments.filter(a => a.finished_level === '—').length;
 
+    // 15. Traffic Source (from referrer)
+    const referrerCounts = {};
+    assessments.forEach(a => {
+      let source = 'Direct';
+      if (a.referrer) {
+        try {
+          const url = new URL(a.referrer);
+          const domain = url.hostname.replace('www.', '');
+          // Categorize common sources
+          if (domain.includes('google')) source = 'Google';
+          else if (domain.includes('facebook') || domain.includes('fb.')) source = 'Facebook';
+          else if (domain.includes('instagram')) source = 'Instagram';
+          else if (domain.includes('linkedin')) source = 'LinkedIn';
+          else if (domain.includes('twitter') || domain.includes('x.com')) source = 'Twitter/X';
+          else if (domain.includes('ulpan.co.il')) source = 'Ulpan Website';
+          else if (domain.includes('localhost')) source = 'Localhost (Dev)';
+          else source = domain;
+        } catch {
+          source = 'Unknown';
+        }
+      }
+      referrerCounts[source] = (referrerCounts[source] || 0) + 1;
+    });
+
+    const trafficSources = Object.entries(referrerCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([source, count]) => ({
+        label: source,
+        value: count,
+        percent: ((count / total) * 100).toFixed(1)
+      }));
+
     return {
       total,
       completed,
@@ -351,7 +383,8 @@ export default function Stats() {
       sourceDistribution,
       dailyActivity,
       beyondMax,
-      extremeBeginners
+      extremeBeginners,
+      trafficSources
     };
   }
 
@@ -465,6 +498,13 @@ export default function Stats() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Funnel */}
         <FunnelChart data={stats.funnel} />
+
+        {/* Traffic Sources */}
+        <BarChart
+          data={stats.trafficSources}
+          title="Traffic Sources (Referrer)"
+          colorClass="bg-gradient-to-r from-indigo-500 to-purple-400"
+        />
 
         {/* Level Distribution */}
         <BarChart

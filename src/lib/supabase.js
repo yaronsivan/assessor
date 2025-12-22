@@ -50,6 +50,7 @@ export async function saveAssessmentStart(name, email) {
         current_stage: 'survey',
         user_agent: navigator.userAgent,
         device_type: getDeviceType(),
+        referrer: document.referrer || null,
         ...(geo || {})
       })
       .select('id')
