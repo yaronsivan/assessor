@@ -5,8 +5,8 @@ export const MESSAGES = {
       formal: "What's your name?"
     },
     email: {
-      fun: "And your email? (I promise we won't spam you!)",
-      formal: "What's your email? (optional)"
+      fun: "How can we reach you? (I promise we won't spam you!)",
+      formal: "What are your contact details?"
     },
     canDecode: {
       fun: "Can you actually read Hebrew letters, or are they still just squiggly lines to you?",

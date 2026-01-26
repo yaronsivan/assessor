@@ -35,8 +35,8 @@ async function getGeolocation() {
   }
 }
 
-// Save assessment when user enters name/email (returns session ID)
-export async function saveAssessmentStart(name, email) {
+// Save assessment when user enters name/email/phone (returns session ID)
+export async function saveAssessmentStart(name, email, phone = null) {
   try {
     // Get geolocation early
     const geo = await getGeolocation();
@@ -46,6 +46,7 @@ export async function saveAssessmentStart(name, email) {
       .insert({
         name,
         email,
+        phone: phone || null,
         session_started_at: new Date().toISOString(),
         current_stage: 'survey',
         user_agent: navigator.userAgent,
@@ -66,6 +67,27 @@ export async function saveAssessmentStart(name, email) {
   } catch (err) {
     console.error('Failed to save assessment start:', err);
     return null;
+  }
+}
+
+// Track WhatsApp choice (for funnel analytics)
+export async function trackWhatsAppChoice(assessmentId, choseWhatsApp) {
+  if (!assessmentId) return;
+
+  try {
+    const { error } = await supabase
+      .from('assessments')
+      .update({
+        chose_whatsapp: choseWhatsApp,
+        current_stage: choseWhatsApp ? 'redirected_to_whatsapp' : 'survey'
+      })
+      .eq('id', assessmentId);
+
+    if (error) {
+      console.error('Failed to track WhatsApp choice:', error);
+    }
+  } catch (err) {
+    console.error('Failed to track WhatsApp choice:', err);
   }
 }
 
