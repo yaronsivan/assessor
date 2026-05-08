@@ -19,7 +19,7 @@ function Question({ question, onAnswer, feedback, disabled }) {
   }, [question]);
 
   const getOptionClass = (option) => {
-    const baseClass = "w-full text-xl p-4 font-bold transition-all duration-200 border-4";
+    const baseClass = "w-full text-xl p-4 font-bold border-4";
 
     if (disabled && feedback) {
       if (option.text === question.Correct) {

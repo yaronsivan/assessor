@@ -71,6 +71,7 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
     }
 
     if (warmupQs.length > 0) {
+      setFeedback(null);
       setBatchQuestions(warmupQs);
       setCurrentQuestionIndex(0);
       setCurrentQuestion(warmupQs[0]);
@@ -93,6 +94,7 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
       return;
     }
 
+    setFeedback(null);
     setBatchQuestions(batchQs.map(q => ({ ...q, levelIdx: lvl })));
     setCurrentQuestionIndex(0);
     setCurrentQuestion(batchQs.length > 0 ? { ...batchQs[0], levelIdx: lvl } : null);
@@ -110,6 +112,7 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
       return;
     }
 
+    setFeedback(null);
     setBatchQuestions(supportQs.map(q => ({ ...q, levelIdx: lvl, isSupportive: true })));
     setCurrentQuestionIndex(0);
     setCurrentQuestion(supportQs.length > 0 ? { ...supportQs[0], levelIdx: lvl, isSupportive: true } : null);
@@ -163,9 +166,8 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
 
     setTotalAsked(prev => prev + 1);
 
-    // Move to next question after a delay
+    // Move to next question after a delay (feedback stays visible until the next question is ready)
     setTimeout(() => {
-      setFeedback(null);
       handleNextQuestion(isCorrect);
     }, 2000);
   };
@@ -175,6 +177,7 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
 
     if (phase === 'warmup') {
       if (nextIdx < batchQuestions.length) {
+        setFeedback(null);
         setCurrentQuestionIndex(nextIdx);
         setCurrentQuestion(batchQuestions[nextIdx]);
       } else {
@@ -201,6 +204,7 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
       }
 
       // Continue with next question in batch
+      setFeedback(null);
       setCurrentQuestionIndex(nextIdx);
       setCurrentQuestion(batchQuestions[nextIdx]);
       return;
@@ -208,6 +212,7 @@ function Game({ mode = 'fun', profile, onComplete, onPhaseChange, onQuestionChan
 
     if (phase === 'supportive') {
       if (nextIdx < batchQuestions.length && totalAsked < HARD_CAP) {
+        setFeedback(null);
         setCurrentQuestionIndex(nextIdx);
         setCurrentQuestion(batchQuestions[nextIdx]);
       } else {
