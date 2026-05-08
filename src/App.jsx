@@ -37,6 +37,7 @@ function MainApp() {
   // Check for URL parameters (email from landing page)
   const urlParams = new URLSearchParams(window.location.search);
   const initialEmail = urlParams.get('email') || '';
+  const initialSource = urlParams.get('source') || '';
   const hasEmailParam = Boolean(initialEmail);
 
   const [phase, setPhase] = useState(hasEmailParam ? PHASES.SURVEY : PHASES.WELCOME);
@@ -219,7 +220,7 @@ function MainApp() {
                   />
                 )}
                 {phase === PHASES.RESULTS && (
-                  <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} />
+                  <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} source={initialSource} />
                 )}
               </div>
             </div>
@@ -319,7 +320,7 @@ function MainApp() {
                     <GateFail mode={mode} profile={profile} onRestart={handleRestart} />
                   )}
                   {phase === PHASES.RESULTS && (
-                    <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} />
+                    <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} source={initialSource} />
                   )}
                 </div>
 

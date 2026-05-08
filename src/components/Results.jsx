@@ -3,13 +3,33 @@ import { getMessage } from '../config/messages';
 import { generateAssessmentReport, generateEmailContent } from '../utils/assessmentReport';
 import CourseSelectionModal from './CourseSelectionModal';
 import LevelAssessmentModal from './LevelAssessmentModal';
-import { trackAssessmentCompleted, trackViewCourses, trackScheduleAssessment } from '../utils/analytics';
+import { trackAssessmentCompleted, trackViewCourses, trackScheduleAssessment, trackEvent } from '../utils/analytics';
 import { saveAssessmentComplete, trackResultsAction, trackResultsExit } from '../lib/supabase';
 
 // Track sent webhooks at module level to survive StrictMode remounts
 const sentWebhooks = new Set();
 
-function Results({ mode = 'fun', profile, results, onRestart, assessmentId: propAssessmentId }) {
+// Map assessor levels to tzabar-lp-il level ids (Dalet and beyond → almost-native-speakers cohort)
+const TZABAR_LEVEL_MAP = {
+  'Aleph (A1.1)': 'aleph',
+  'Aleph+ (A1.2)': 'aleph-plus',
+  'Aleph++ (A1.3)': 'aleph-plus-plus',
+  'Bet (A2.1)': 'bet',
+  'Bet+ (A2.2)': 'bet-plus',
+  'Bet++ (A2.3)': 'bet-plus-plus',
+  'Gimmel (B1.1)': 'gimmel',
+  'Gimmel+ (B1.2)': 'gimmel',
+  'Gimmel++ (B1.3)': 'gimmel',
+  'Dalet (B2.1)': 'almost-native-speakers',
+};
+
+function getTzabarLevel(results) {
+  if (!results) return null;
+  if (results.beyondMaxLevel) return 'almost-native-speakers';
+  return TZABAR_LEVEL_MAP[results.recommendedLevel] || null;
+}
+
+function Results({ mode = 'fun', profile, results, onRestart, assessmentId: propAssessmentId, source = '' }) {
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
   const [assessmentId, setAssessmentId] = useState(propAssessmentId);
@@ -225,7 +245,30 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
+          {source === 'tzabar' && getTzabarLevel(results) && (
+            <a
+              href={`https://tzabar.ulpan.co.il/?level=${getTzabarLevel(results)}#courses`}
+              onClick={() => trackEvent('tzabar_register_click', {
+                level: results.recommendedLevel,
+                tzabar_level: getTzabarLevel(results),
+              })}
+              className="
+                bg-cyan-500 hover:bg-cyan-600
+                text-white text-xl font-bold
+                px-10 py-4 border-4 border-cyan-700
+                shadow-pixel-lg active:translate-y-1 active:shadow-pixel
+                transition-all duration-200
+                inline-flex items-center justify-center gap-3 text-center
+              "
+            >
+              Register at Ulpan Bayit
+              <span className="px-2 py-1 bg-yellow-300 text-purple-900 text-xs font-bold border-2 border-purple-900">
+                Garin Tzabar 10–15% off
+              </span>
+            </a>
+          )}
+
           {/* Only show View Courses button if not beyond max level */}
           {!results.beyondMaxLevel && (
             <button
