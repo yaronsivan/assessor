@@ -8,6 +8,46 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
     <title>Assessor - Hebrew Level Test</title>
+
+    <script>
+    (function () {
+      try {
+        var p = new URLSearchParams(window.location.search);
+        var maxAge = 90 * 86400;
+        var setCookie = function (name, val) {
+          document.cookie = name + '=' + encodeURIComponent(val) + '; max-age=' + maxAge + '; path=/; SameSite=Lax';
+        };
+        var gclid = p.get('gclid');
+        var fbclid = p.get('fbclid');
+        if (gclid) setCookie('click_gclid', gclid);
+        if (fbclid) setCookie('click_fbclid', fbclid);
+
+        var readCookie = function (name) {
+          var match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+          return match ? decodeURIComponent(match[2]) : '';
+        };
+        var ensureHiddenInput = function (form, name, value) {
+          if (!value) return;
+          var existing = form.querySelector('input[name="' + name + '"]');
+          if (existing) { existing.value = value; return; }
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = value;
+          form.appendChild(input);
+        };
+
+        document.addEventListener('submit', function (event) {
+          var form = event.target;
+          if (!(form instanceof HTMLFormElement)) return;
+          ensureHiddenInput(form, 'gclid',  readCookie('click_gclid'));
+          ensureHiddenInput(form, 'fbclid', readCookie('click_fbclid'));
+        }, true);
+      } catch (e) {
+        // Never break the page over telemetry.
+      }
+    })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
