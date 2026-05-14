@@ -254,6 +254,13 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
 
     // Call CRM API - source: "assessor_site" triggers the WhatsApp template
     try {
+      const readCookie = (name) => {
+        const m = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]+)'));
+        return m ? decodeURIComponent(m[2]) : '';
+      };
+      const gclid = readCookie('click_gclid');
+      const fbclid = readCookie('click_fbclid');
+
       const response = await fetch(CRM_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -264,7 +271,9 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
           organization: 'ulpan_bayit',
           source: 'assessor_site',
           pipelineStage: 'assessment',
-          studentStatus: 'prospect'
+          studentStatus: 'prospect',
+          ...(gclid ? { gclid } : {}),
+          ...(fbclid ? { fbclid } : {}),
         })
       });
 
