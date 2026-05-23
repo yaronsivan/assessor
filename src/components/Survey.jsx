@@ -1,10 +1,31 @@
 import { useState, useEffect } from 'react';
+import Mailcheck from 'mailcheck';
 import { runSurvey } from '../hooks/useSurvey';
 import { getMessage } from '../config/messages';
 import { trackAssessmentStarted } from '../utils/analytics';
 import { saveAssessmentStart, updateAssessmentProfile, trackWhatsAppChoice } from '../lib/supabase';
 
 const CRM_API_URL = 'https://web-umber-rho-91.vercel.app/api/contacts';
+const VALIDATE_EMAIL_URL = 'https://web-umber-rho-91.vercel.app/api/validate-email';
+
+// Server-side validation: stricter regex + disposable-domain blocklist +
+// MX/A record DNS lookup. Returns { valid: boolean, reason?: string }.
+// Treats network failures as { valid: true } so a server hiccup doesn't
+// block real users — the point is to catch obvious junk, not perfection.
+const validateEmailServer = async (email) => {
+  try {
+    const response = await fetch(VALIDATE_EMAIL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) return { valid: true };
+    return await response.json();
+  } catch (err) {
+    console.error('Email validation error:', err);
+    return { valid: true };
+  }
+};
 
 const readClickCookie = (name) => {
   const m = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]+)'));
@@ -83,6 +104,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
   });
   const [currentValidationQuestion, setCurrentValidationQuestion] = useState(null);
   const [emailError, setEmailError] = useState('');
+  const [emailSuggestion, setEmailSuggestion] = useState(null);
   const [isSubmittingWebhook, setIsSubmittingWebhook] = useState(false);
   const [localAssessmentId, setLocalAssessmentId] = useState(null);
   const [countryCode, setCountryCode] = useState('+972');
@@ -159,6 +181,15 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
 
     setEmailError('');
     setIsSubmittingWebhook(true);
+
+    // Server-side validation — block disposable / typo / fake-domain
+    // addresses before they ever reach the CRM or trigger an email send.
+    const validation = await validateEmailServer(formData.email);
+    if (!validation.valid) {
+      setEmailError(validation.reason || 'Please enter a valid email address');
+      setIsSubmittingWebhook(false);
+      return;
+    }
 
     // Combine country code and phone number
     const localNumber = phoneNumber.trim().replace(/^0+/, '');
@@ -463,7 +494,22 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
               type="email"
               required
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, email: e.target.value });
+                if (emailSuggestion) setEmailSuggestion(null);
+              }}
+              onBlur={(e) => {
+                const val = e.target.value.trim();
+                if (!val) {
+                  setEmailSuggestion(null);
+                  return;
+                }
+                Mailcheck.run({
+                  email: val,
+                  suggested: (s) => setEmailSuggestion(s.full),
+                  empty: () => setEmailSuggestion(null),
+                });
+              }}
               placeholder="your.email@example.com"
               className={`w-full px-6 py-4 text-xl border-4 ${emailError ? 'border-red-500' : 'border-purple-300'} focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm`}
               autoFocus
@@ -474,6 +520,23 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
               spellCheck="false"
               inputMode="email"
             />
+            {emailSuggestion && (
+              <p className="text-purple-200 text-center mt-2 text-sm">
+                Did you mean{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({ ...formData, email: emailSuggestion });
+                    setEmailSuggestion(null);
+                    setEmailError('');
+                  }}
+                  className="font-bold underline hover:text-white"
+                >
+                  {emailSuggestion}
+                </button>
+                ?
+              </p>
+            )}
 
             {/* Phone Input (optional) */}
             <label className="block text-white text-sm mt-4 mb-2 font-semibold">
