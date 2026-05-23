@@ -33,15 +33,22 @@ function ContactModal({ isOpen, onClose }) {
     setSubmitError('');
 
     try {
-      const response = await fetch('https://hook.eu1.make.com/8xynd14g6qgte9sgole2rocaq3y5k3hm', {
+      const response = await fetch('https://web-umber-rho-91.vercel.app/api/contacts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organization: 'ulpan_bayit',
+          source: 'assessor_contact_form',
+          studentStatus: 'prospect',
+          fullName: formData.name,
+          email: formData.email,
+          ...(formData.phone ? { phoneNumber: formData.phone } : {}),
+          notes: formData.message,
+        }),
       });
 
-      if (response.ok) {
+      // 200/201 (created) and 409 (existing lead) both mean "we got your message".
+      if (response.ok || response.status === 409) {
         setSubmitSuccess(true);
         setTimeout(() => {
           onClose();
@@ -53,7 +60,7 @@ function ContactModal({ isOpen, onClose }) {
       } else {
         setSubmitError('Failed to send message. Please try again.');
       }
-    } catch (error) {
+    } catch {
       setSubmitError('Failed to send message. Please try again.');
     } finally {
       setIsSubmitting(false);

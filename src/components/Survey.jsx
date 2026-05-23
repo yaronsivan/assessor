@@ -6,6 +6,32 @@ import { saveAssessmentStart, updateAssessmentProfile, trackWhatsAppChoice } fro
 
 const CRM_API_URL = 'https://web-umber-rho-91.vercel.app/api/contacts';
 
+const readClickCookie = (name) => {
+  const m = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]+)'));
+  return m ? decodeURIComponent(m[2]) : '';
+};
+
+// POST a lead to the central CRM. The CRM authenticates assessor.ulpan.co.il
+// via its CORS allowlist (no secret needed for the browser path), and the
+// `assessor_site` source bypasses the staff-session requirement.
+const submitAssessorLead = (fields) => {
+  const gclid = readClickCookie('click_gclid');
+  const fbclid = readClickCookie('click_fbclid');
+  return fetch(CRM_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      organization: 'ulpan_bayit',
+      source: 'assessor_site',
+      pipelineStage: 'assessment',
+      studentStatus: 'prospect',
+      ...(gclid ? { gclid } : {}),
+      ...(fbclid ? { fbclid } : {}),
+      ...fields,
+    }),
+  });
+};
+
 const COUNTRY_CODES = [
   { code: '+972', flag: '🇮🇱', name: 'Israel' },
   { code: '+1', flag: '🇺🇸', name: 'USA/Canada' },
@@ -91,20 +117,12 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
         }
       }
 
-      // Send Make.com webhook (don't await - let it run in background)
-      fetch('https://hook.eu1.make.com/v9y7wnw4apbtyqlexiy5au316rm8fhoj', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: initialEmail,
-          consent: true,
-          timestamp: new Date().toISOString(),
-          eventType: 'user_started'
-        })
-      }).catch(err => console.error('Webhook failed:', err));
-
-      // Note: CRM API call moved to handleWhatsAppChoice - only called when user chooses WhatsApp
+      // Create a CRM lead immediately on survey start. Fire-and-forget — a
+      // failure here shouldn't block the user from continuing the assessment.
+      submitAssessorLead({
+        fullName: formData.name,
+        email: initialEmail,
+      }).catch((err) => console.error('CRM lead-creation failed:', err));
 
       trackAssessmentStarted();
 
@@ -161,30 +179,21 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
       }
     }
 
-    // Send to Make.com webhook (keep existing)
+    // Create a CRM lead immediately on email submission. If the user later
+    // chooses WhatsApp on mobile, handleWhatsAppPhoneSubmit will re-POST
+    // with the phone — the CRM's email-merge logic stamps the phone on this
+    // existing lead instead of duplicating it.
     try {
-      await fetch('https://hook.eu1.make.com/v9y7wnw4apbtyqlexiy5au316rm8fhoj', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: fullPhone,
-          consent: formData.consent,
-          timestamp: new Date().toISOString(),
-          eventType: 'user_started'
-        })
+      await submitAssessorLead({
+        fullName: formData.name,
+        email: formData.email,
+        ...(fullPhone ? { phoneNumber: fullPhone } : {}),
       });
     } catch (error) {
-      console.error('Failed to send webhook:', error);
+      console.error('CRM lead-creation failed:', error);
     } finally {
       setIsSubmittingWebhook(false);
     }
-
-    // Note: CRM API call moved to handleWhatsAppChoice - only called when user chooses WhatsApp
-    // The source: "assessor_site" triggers the WhatsApp template automatically
 
     // Track assessment started
     trackAssessmentStarted();
@@ -252,32 +261,17 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     // Update formData with the full phone for display later
     setFormData({ ...formData, phone: fullPhone });
 
-    // Call CRM API - source: "assessor_site" triggers the WhatsApp template
+    // Call CRM — source: "assessor_site" triggers the WhatsApp template.
+    // If the user already has a lead from survey-start (email only), the
+    // CRM's email-merge branch stamps the phone on the existing row.
     try {
-      const readCookie = (name) => {
-        const m = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]+)'));
-        return m ? decodeURIComponent(m[2]) : '';
-      };
-      const gclid = readCookie('click_gclid');
-      const fbclid = readCookie('click_fbclid');
-
-      const response = await fetch(CRM_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phoneNumber: fullPhone,
-          fullName: formData.name,
-          email: formData.email,
-          organization: 'ulpan_bayit',
-          source: 'assessor_site',
-          pipelineStage: 'assessment',
-          studentStatus: 'prospect',
-          ...(gclid ? { gclid } : {}),
-          ...(fbclid ? { fbclid } : {}),
-        })
+      const response = await submitAssessorLead({
+        phoneNumber: fullPhone,
+        fullName: formData.name,
+        email: formData.email,
       });
 
-      // Both 200/201 (created) and 409 (exists) are OK
+      // Both 200/201 (created or merged) and 409 (exists) are OK
       if (response.ok || response.status === 409) {
         setStep('whatsappSent');
       } else {

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { getMessage } from '../config/messages';
-import { generateAssessmentReport, generateEmailContent } from '../utils/assessmentReport';
 import CourseSelectionModal from './CourseSelectionModal';
 import LevelAssessmentModal from './LevelAssessmentModal';
 import { trackAssessmentCompleted, trackViewCourses, trackScheduleAssessment, trackEvent } from '../utils/analytics';
@@ -8,6 +7,8 @@ import { saveAssessmentComplete, trackResultsAction, trackResultsExit } from '..
 
 // Track sent webhooks at module level to survive StrictMode remounts
 const sentWebhooks = new Set();
+
+const CRM_RESULTS_URL = 'https://web-umber-rho-91.vercel.app/api/email/send-assessment-result';
 
 // Map assessor levels to tzabar-lp-il level ids (Dalet and beyond → almost-native-speakers cohort)
 const TZABAR_LEVEL_MAP = {
@@ -35,28 +36,7 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
   const [assessmentId, setAssessmentId] = useState(propAssessmentId);
   const resultsStartTime = useRef(Date.now());
 
-  // Keep report generation for future email use
-  const report = generateAssessmentReport(profile, results);
-  const emailContent = generateEmailContent(profile, results);
-
-  // Map levels to external system IDs
-  const getLevelId = (levelName) => {
-    const levelIdMap = {
-      "Aleph (A1.1)": 258916,
-      "Aleph+ (A1.2)": 258917,
-      "Aleph++ (A1.3)": 258918,
-      "Bet (A2.1)": 258919,
-      "Bet+ (A2.2)": 258920,
-      "Bet++ (A2.3)": 533690,
-      "Gimmel (B1.1)": 258921,
-      "Gimmel+ (B1.2)": 258922,
-      "Gimmel++ (B1.3)": 258923,
-      "Dalet (B2.1)": 258924
-    };
-    return levelIdMap[levelName] || null;
-  };
-
-  // Send results to Make.com webhook when component mounts - only once
+  // Send results to the CRM when the component mounts — only once
   useEffect(() => {
     // Use email as unique key to prevent duplicate sends (survives StrictMode remounts)
     const webhookKey = `assessment_${profile?.email}`;
@@ -64,58 +44,40 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
     sentWebhooks.add(webhookKey);
 
     const sendResultsAndSave = async () => {
+      // POST to the CRM. The route upserts a lead by email, stamps the
+      // hebrew_level, then enrolls in the assessment_complete automation —
+      // the walker fires the results email (step 0 of the assessor drip)
+      // within ~60s and continues the Day 1/3/7/14 sequence.
       let webhookResult = { status: 'not_sent', response: null, sentAt: null };
-
-      // Send webhook to Make.com
       try {
-        const payload = {
-          name: profile?.name,
-          email: profile?.email,
-          recommendedLevel: results.recommendedLevel,
-          recommendedLevelId: getLevelId(results.recommendedLevel),
-          finishedLevel: results.finishedLevel,
-          finishedLevelId: getLevelId(results.finishedLevel),
-          emailHTML: emailContent,
-          analysis: report,
-          totalAsked: results.totalAsked,
-          timestamp: new Date().toISOString(),
-          eventType: 'assessment_completed'
-        };
-
-        console.log('Sending webhook payload:', {
-          ...payload,
-          emailHTML: emailContent ? `${emailContent.substring(0, 100)}... (${emailContent.length} chars)` : 'EMPTY',
-          analysis: report ? `${report.substring(0, 100)}... (${report.length} chars)` : 'EMPTY'
-        });
-        console.log('Total payload size:', JSON.stringify(payload).length, 'bytes');
-
-        const response = await fetch('https://hook.eu1.make.com/obn5ra3f86v4s4eqg6bp661yeeqv04u2', {
+        const response = await fetch(CRM_RESULTS_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload)
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: profile?.email,
+            name: profile?.name,
+            phone: profile?.phone || undefined,
+            level: results.recommendedLevel,
+            organization: 'ulpan_bayit',
+          }),
         });
 
         const responseText = await response.text();
-        console.log('Webhook response status:', response.status);
-        console.log('Webhook response:', responseText);
-
         webhookResult = {
           status: response.ok ? 'success' : `error_${response.status}`,
-          response: responseText.substring(0, 500), // Limit response size
-          sentAt: new Date().toISOString()
+          response: responseText.substring(0, 500),
+          sentAt: new Date().toISOString(),
         };
       } catch (error) {
-        console.error('Failed to send results webhook:', error);
+        console.error('CRM results-send failed:', error);
         webhookResult = {
           status: 'failed',
           response: error.message,
-          sentAt: new Date().toISOString()
+          sentAt: new Date().toISOString(),
         };
       }
 
-      // Save to Supabase (with webhook result) - use existing ID if available
+      // Save to Supabase (with CRM call result) - use existing ID if available
       const id = await saveAssessmentComplete(propAssessmentId, profile, results, webhookResult);
       if (id && !propAssessmentId) {
         setAssessmentId(id);
