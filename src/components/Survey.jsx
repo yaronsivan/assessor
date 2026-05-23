@@ -446,6 +446,12 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
               placeholder="Enter your name"
               className="w-full px-6 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm"
               autoFocus
+              name="firstName"
+              autoComplete="given-name"
+              autoCapitalize="words"
+              autoCorrect="off"
+              spellCheck="false"
+              inputMode="text"
             />
             <button
               type="submit"
@@ -467,6 +473,12 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
               placeholder="your.email@example.com"
               className={`w-full px-6 py-4 text-xl border-4 ${emailError ? 'border-red-500' : 'border-purple-300'} focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm`}
               autoFocus
+              name="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
+              inputMode="email"
             />
 
             {/* Phone Input (optional) */}
@@ -500,6 +512,9 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="54 123 4567"
                 className="flex-1 px-4 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none shadow-pixel-sm"
+                name="phone"
+                autoComplete="tel-national"
+                inputMode="tel"
               />
             </div>
 
