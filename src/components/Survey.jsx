@@ -3,7 +3,7 @@ import Mailcheck from 'mailcheck';
 import { runSurvey } from '../hooks/useSurvey';
 import { getMessage } from '../config/messages';
 import { trackAssessmentStarted } from '../utils/analytics';
-import { saveAssessmentStart, updateAssessmentProfile, trackWhatsAppChoice } from '../lib/supabase';
+import { saveAssessmentStart, updateAssessmentProfile } from '../lib/supabase';
 
 const CRM_API_URL = 'https://web-umber-rho-91.vercel.app/api/contacts';
 const VALIDATE_EMAIL_URL = 'https://web-umber-rho-91.vercel.app/api/validate-email';
@@ -83,10 +83,6 @@ const COUNTRY_CODES = [
   { code: 'other', flag: '🌍', name: 'Other' },
 ];
 
-function isMobile() {
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-}
-
 function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChange, initialEmail = '' }) {
   const [step, setStep] = useState('name');
   const [formData, setFormData] = useState({
@@ -148,12 +144,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
 
       trackAssessmentStarted();
 
-      // On mobile, show WhatsApp choice; on desktop, continue to assessment
-      if (isMobile()) {
-        setStep('whatsappChoice');
-      } else {
-        setStep('canDecode');
-      }
+      setStep('canDecode');
     } else {
       setStep('email');
     }
@@ -210,10 +201,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
       }
     }
 
-    // Create a CRM lead immediately on email submission. If the user later
-    // chooses WhatsApp on mobile, handleWhatsAppPhoneSubmit will re-POST
-    // with the phone — the CRM's email-merge logic stamps the phone on this
-    // existing lead instead of duplicating it.
+    // Create a CRM lead immediately on email submission.
     try {
       await submitAssessorLead({
         fullName: formData.name,
@@ -229,28 +217,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     // Track assessment started
     trackAssessmentStarted();
 
-    // On mobile, show WhatsApp choice; on desktop, continue to assessment
-    if (isMobile()) {
-      setStep('whatsappChoice');
-    } else {
-      setStep('canDecode');
-    }
-  };
-
-  const handleWhatsAppChoice = async (choice) => {
-    // Track the choice in Supabase
-    if (localAssessmentId) {
-      await trackWhatsAppChoice(localAssessmentId, choice === 'whatsapp');
-    }
-
-    if (choice === 'whatsapp') {
-      // phoneNumber state is already set from the email step if they entered one
-      // Go to WhatsApp phone confirmation/entry step
-      setStep('whatsappPhone');
-    } else {
-      // Continue with web assessment
-      setStep('canDecode');
-    }
+    setStep('canDecode');
   };
 
   const getFullCountryCode = () => {
@@ -259,63 +226,6 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
       return custom.startsWith('+') ? custom : `+${custom}`;
     }
     return countryCode;
-  };
-
-  const handleWhatsAppPhoneSubmit = async (e) => {
-    e.preventDefault();
-
-    const localNumber = phoneNumber.trim().replace(/^0+/, ''); // Remove leading zeros
-    const finalCountryCode = getFullCountryCode();
-
-    if (!localNumber) {
-      setEmailError('Please enter your phone number');
-      return;
-    }
-
-    if (countryCode === 'other' && !customCountryCode.trim()) {
-      setEmailError('Please enter your country code');
-      return;
-    }
-
-    // Basic validation: at least 6 digits
-    const digitsOnly = localNumber.replace(/\D/g, '');
-    if (digitsOnly.length < 6) {
-      setEmailError('Please enter a valid phone number');
-      return;
-    }
-
-    const fullPhone = `${finalCountryCode}${localNumber}`;
-
-    setEmailError('');
-    setIsSubmittingWebhook(true);
-
-    // Update formData with the full phone for display later
-    setFormData({ ...formData, phone: fullPhone });
-
-    // Call CRM — source: "assessor_site" triggers the WhatsApp template.
-    // If the user already has a lead from survey-start (email only), the
-    // CRM's email-merge branch stamps the phone on the existing row.
-    try {
-      const response = await submitAssessorLead({
-        phoneNumber: fullPhone,
-        fullName: formData.name,
-        email: formData.email,
-      });
-
-      // Both 200/201 (created or merged) and 409 (exists) are OK
-      if (response.ok || response.status === 409) {
-        setStep('whatsappSent');
-      } else {
-        const data = await response.json();
-        console.error('CRM API error:', data);
-        setEmailError('Failed to send WhatsApp message. Please try again.');
-      }
-    } catch (error) {
-      console.error('Failed to send to CRM:', error);
-      setEmailError('Failed to send WhatsApp message. Please try again.');
-    } finally {
-      setIsSubmittingWebhook(false);
-    }
   };
 
   const handleDecodeAnswer = (answer) => {
@@ -430,12 +340,6 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
         return getMessage('survey.name', mode);
       case 'email':
         return getMessage('survey.email', mode);
-      case 'whatsappChoice':
-        return "How would you like to continue?";
-      case 'whatsappPhone':
-        return "What's your WhatsApp number?";
-      case 'whatsappSent':
-        return "Check your WhatsApp!";
       case 'canDecode':
         return getMessage('survey.canDecode', mode);
       case 'knowledgeSource':
@@ -603,124 +507,6 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
               {isSubmittingWebhook ? 'Submitting...' : 'Continue'}
             </button>
           </form>
-        )}
-
-        {/* WhatsApp Choice (mobile only) */}
-        {step === 'whatsappChoice' && (
-          <div className="w-full max-w-md flex flex-col gap-4">
-            <p className="text-white text-center mb-2">
-              The assessment takes about 5 minutes
-            </p>
-
-            <button
-              onClick={() => handleWhatsAppChoice('whatsapp')}
-              disabled={isSubmittingWebhook}
-              className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 text-white text-xl font-bold px-8 py-4 border-4 border-green-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all flex items-center justify-center gap-3"
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-              </svg>
-              {isSubmittingWebhook ? 'Sending...' : 'Continue on WhatsApp'}
-            </button>
-
-            <button
-              onClick={() => handleWhatsAppChoice('web')}
-              disabled={isSubmittingWebhook}
-              className="w-full bg-purple-500/50 hover:bg-purple-500/70 text-white text-lg font-bold px-8 py-4 border-4 border-purple-700/50 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
-            >
-              Continue on this website
-            </button>
-          </div>
-        )}
-
-        {/* WhatsApp Phone Entry/Confirmation */}
-        {step === 'whatsappPhone' && (
-          <form onSubmit={handleWhatsAppPhoneSubmit} className="w-full max-w-md">
-            <div className="bg-green-500/20 border-4 border-green-500/40 p-4 mb-6 shadow-pixel-sm">
-              <div className="flex items-center gap-3 text-white">
-                <svg className="w-8 h-8 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                </svg>
-                <p className="text-sm font-semibold">
-                  We'll send you a WhatsApp message to start the assessment
-                </p>
-              </div>
-            </div>
-
-            <label className="block text-white text-sm mb-2 font-semibold">
-              Your WhatsApp Number
-            </label>
-            <div className="flex gap-2">
-              <select
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-                className="px-2 py-4 text-base border-4 border-purple-300 focus:border-purple-500 focus:outline-none shadow-pixel-sm bg-white min-w-[100px]"
-              >
-                {COUNTRY_CODES.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.flag} {country.code}
-                  </option>
-                ))}
-              </select>
-              {countryCode === 'other' && (
-                <input
-                  type="text"
-                  value={customCountryCode}
-                  onChange={(e) => setCustomCountryCode(e.target.value)}
-                  placeholder="+XX"
-                  className="w-20 px-2 py-4 text-base border-4 border-purple-300 focus:border-purple-500 focus:outline-none shadow-pixel-sm text-center"
-                />
-              )}
-              <input
-                type="tel"
-                required
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="54 123 4567"
-                className={`flex-1 px-4 py-4 text-xl border-4 ${emailError ? 'border-red-500' : 'border-purple-300'} focus:border-purple-500 focus:outline-none shadow-pixel-sm`}
-                autoFocus
-              />
-            </div>
-
-            {emailError && (
-              <p className="text-red-300 text-center mt-3 font-semibold">{emailError}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSubmittingWebhook}
-              className="mt-6 w-full bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 text-white text-xl font-bold px-8 py-4 border-4 border-green-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all flex items-center justify-center gap-3"
-            >
-              {isSubmittingWebhook ? 'Sending...' : 'Send me the assessment'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStep('whatsappChoice')}
-              disabled={isSubmittingWebhook}
-              className="mt-3 w-full text-purple-200 hover:text-white text-sm font-medium transition-colors"
-            >
-              ← Back
-            </button>
-          </form>
-        )}
-
-        {/* WhatsApp Sent Confirmation */}
-        {step === 'whatsappSent' && (
-          <div className="w-full max-w-md text-center">
-            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-green-700 shadow-pixel">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <p className="text-white text-lg mb-6">
-              We've sent you a WhatsApp message to start the assessment.
-              Open WhatsApp and reply to begin!
-            </p>
-            <p className="text-purple-200 text-sm">
-              Didn't receive it? Make sure <span className="font-bold">{formData.phone}</span> is your WhatsApp number.
-            </p>
-          </div>
         )}
 
         {/* Can Decode Question */}

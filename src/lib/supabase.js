@@ -70,27 +70,6 @@ export async function saveAssessmentStart(name, email, phone = null) {
   }
 }
 
-// Track WhatsApp choice (for funnel analytics)
-export async function trackWhatsAppChoice(assessmentId, choseWhatsApp) {
-  if (!assessmentId) return;
-
-  try {
-    const { error } = await supabase
-      .from('assessments')
-      .update({
-        chose_whatsapp: choseWhatsApp,
-        current_stage: choseWhatsApp ? 'redirected_to_whatsapp' : 'survey'
-      })
-      .eq('id', assessmentId);
-
-    if (error) {
-      console.error('Failed to track WhatsApp choice:', error);
-    }
-  } catch (err) {
-    console.error('Failed to track WhatsApp choice:', err);
-  }
-}
-
 // Update assessment with survey/profile data
 export async function updateAssessmentProfile(assessmentId, profile) {
   if (!assessmentId) return;
