@@ -30,11 +30,40 @@ function getTzabarLevel(results) {
   return TZABAR_LEVEL_MAP[results.recommendedLevel] || null;
 }
 
-function Results({ mode = 'fun', profile, results, onRestart, assessmentId: propAssessmentId, source = '' }) {
+function Results({ mode = 'fun', profile, results, onRestart, assessmentId: propAssessmentId, source = '', issue = '' }) {
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
   const [assessmentId, setAssessmentId] = useState(propAssessmentId);
+  const [magazineLinkState, setMagazineLinkState] = useState('idle'); // 'idle' | 'loading' | 'error'
   const resultsStartTime = useRef(Date.now());
+
+  const isMagazineReferral = source === 'magazine' && Boolean(issue);
+
+  // Mint a signed grant via our serverless function and bounce the reader to
+  // the magazine's current issue, unlocked at their assessed level. The
+  // function maps recommendedLevel/beyondMax → magazine level (single source
+  // of truth) and signs the token the magazine's verifyGrant expects.
+  const handleReadAtLevel = async () => {
+    setMagazineLinkState('loading');
+    try {
+      const res = await fetch(
+        `/api/magazine-link?issue=${encodeURIComponent(issue)}` +
+          `&level=${encodeURIComponent(results.recommendedLevel)}` +
+          `&beyondMax=${results.beyondMaxLevel ? '1' : '0'}`
+      );
+      if (!res.ok) throw new Error(`magazine-link ${res.status}`);
+      const { url } = await res.json();
+      if (!url) throw new Error('magazine-link: missing url');
+      trackEvent('magazine_read_at_level_click', {
+        level: results.recommendedLevel,
+        issue,
+      });
+      window.location.href = url;
+    } catch (err) {
+      console.error('Failed to mint magazine link:', err);
+      setMagazineLinkState('error');
+    }
+  };
 
   // Send results to the CRM when the component mounts — only once
   useEffect(() => {
@@ -78,7 +107,7 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
       }
 
       // Save to Supabase (with CRM call result) - use existing ID if available
-      const id = await saveAssessmentComplete(propAssessmentId, profile, results, webhookResult);
+      const id = await saveAssessmentComplete(propAssessmentId, profile, results, webhookResult, source, issue);
       if (id && !propAssessmentId) {
         setAssessmentId(id);
       }
@@ -205,6 +234,49 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
             {getCompleteMessage()}
           </p>
         </div>
+
+        {/* Magazine round-trip CTA — only for readers who came from the magazine */}
+        {isMagazineReferral && (
+          <div className="mb-8 flex flex-col items-center gap-3">
+            {magazineLinkState === 'error' ? (
+              <a
+                href="https://ulpan-magazine.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="
+                  bg-amber-500 hover:bg-amber-600
+                  text-white text-xl font-bold
+                  px-10 py-4 border-4 border-amber-700
+                  shadow-pixel-lg active:translate-y-1 active:shadow-pixel
+                  transition-all duration-200
+                  inline-flex items-center justify-center gap-3 text-center
+                "
+              >
+                Open the magazine →
+              </a>
+            ) : (
+              <button
+                onClick={handleReadAtLevel}
+                disabled={magazineLinkState === 'loading'}
+                className="
+                  bg-amber-500 hover:bg-amber-600 disabled:bg-gray-400
+                  text-white text-xl font-bold
+                  px-10 py-4 border-4 border-amber-700 disabled:border-gray-600
+                  shadow-pixel-lg active:translate-y-1 active:shadow-pixel
+                  transition-all duration-200
+                  inline-flex items-center justify-center gap-3 text-center
+                "
+              >
+                {magazineLinkState === 'loading' ? 'Opening…' : 'Read this issue at your level →'}
+              </button>
+            )}
+            {magazineLinkState === 'error' && (
+              <p className="text-amber-200 text-sm text-center">
+                We couldn't unlock the issue automatically — open the magazine above.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center flex-wrap">

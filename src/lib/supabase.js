@@ -35,8 +35,16 @@ async function getGeolocation() {
   }
 }
 
+// Build the `referrer` value. When the visitor arrived from the magazine
+// (or another tagged source), record "source" or "source:issue" so we can
+// trace the round-trip; otherwise fall back to the browser referrer.
+function buildReferrer(source = '', issue = '') {
+  if (source) return issue ? `${source}:${issue}` : source;
+  return document.referrer || null;
+}
+
 // Save assessment when user enters name/email/phone (returns session ID)
-export async function saveAssessmentStart(name, email, phone = null) {
+export async function saveAssessmentStart(name, email, phone = null, source = '', issue = '') {
   try {
     // Get geolocation early
     const geo = await getGeolocation();
@@ -51,7 +59,7 @@ export async function saveAssessmentStart(name, email, phone = null) {
         current_stage: 'survey',
         user_agent: navigator.userAgent,
         device_type: getDeviceType(),
-        referrer: document.referrer || null,
+        referrer: buildReferrer(source, issue),
         ...(geo || {})
       })
       .select('id')
@@ -140,7 +148,7 @@ export function trackAbandonment(assessmentId, currentStage) {
 }
 
 // Update assessment with results (returns the record ID for future updates)
-export async function saveAssessmentComplete(sessionId, profile, results, webhookResult) {
+export async function saveAssessmentComplete(sessionId, profile, results, webhookResult, source = '', issue = '') {
   try {
     const updateData = {
       session_completed_at: new Date().toISOString(),
@@ -198,6 +206,7 @@ export async function saveAssessmentComplete(sessionId, profile, results, webhoo
           validation_trace: profile.trace || [],
           user_agent: navigator.userAgent,
           device_type: getDeviceType(),
+          referrer: buildReferrer(source, issue),
           ...(geo || {}),
           ...updateData
         })

@@ -38,6 +38,7 @@ function MainApp() {
   const urlParams = new URLSearchParams(window.location.search);
   const initialEmail = urlParams.get('email') || '';
   const initialSource = urlParams.get('source') || '';
+  const initialIssue = urlParams.get('issue') || '';
   const hasEmailParam = Boolean(initialEmail);
 
   const [phase, setPhase] = useState(hasEmailParam ? PHASES.SURVEY : PHASES.WELCOME);
@@ -204,7 +205,7 @@ function MainApp() {
                   <Welcome onComplete={handleWelcomeComplete} />
                 )}
                 {phase === PHASES.SURVEY && (
-                  <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} initialEmail={initialEmail} />
+                  <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} initialEmail={initialEmail} source={initialSource} issue={initialIssue} />
                 )}
                 {phase === PHASES.GATE_FAIL && (
                   <GateFail mode={mode} profile={profile} onRestart={handleRestart} />
@@ -220,7 +221,7 @@ function MainApp() {
                   />
                 )}
                 {phase === PHASES.RESULTS && (
-                  <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} source={initialSource} />
+                  <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} source={initialSource} issue={initialIssue} />
                 )}
               </div>
             </div>
@@ -314,13 +315,13 @@ function MainApp() {
                     <Welcome onComplete={handleWelcomeComplete} />
                   )}
                   {phase === PHASES.SURVEY && (
-                    <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} initialEmail={initialEmail} />
+                    <Survey mode={mode} onComplete={handleSurveyComplete} onMessageChange={setSurveyMessage} onAssessmentIdChange={setAssessmentId} initialEmail={initialEmail} source={initialSource} issue={initialIssue} />
                   )}
                   {phase === PHASES.GATE_FAIL && (
                     <GateFail mode={mode} profile={profile} onRestart={handleRestart} />
                   )}
                   {phase === PHASES.RESULTS && (
-                    <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} source={initialSource} />
+                    <Results mode={mode} profile={profile} results={gameResults} onRestart={handleRestart} assessmentId={assessmentId} source={initialSource} issue={initialIssue} />
                   )}
                 </div>
 

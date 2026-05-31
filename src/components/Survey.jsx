@@ -83,7 +83,7 @@ const COUNTRY_CODES = [
   { code: 'other', flag: '🌍', name: 'Other' },
 ];
 
-function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChange, initialEmail = '' }) {
+function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChange, initialEmail = '', source = '', issue = '' }) {
   const [step, setStep] = useState('name');
   const [formData, setFormData] = useState({
     name: '',
@@ -127,7 +127,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     // If email was pre-filled from URL, skip email step entirely
     if (initialEmail) {
       // Save to Supabase and send webhook in background
-      const newAssessmentId = await saveAssessmentStart(formData.name, initialEmail);
+      const newAssessmentId = await saveAssessmentStart(formData.name, initialEmail, null, source, issue);
       if (newAssessmentId) {
         setLocalAssessmentId(newAssessmentId);
         if (onAssessmentIdChange) {
@@ -193,7 +193,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     }
 
     // Save to Supabase first (this creates the assessment record)
-    const newAssessmentId = await saveAssessmentStart(formData.name, formData.email, fullPhone);
+    const newAssessmentId = await saveAssessmentStart(formData.name, formData.email, fullPhone, source, issue);
     if (newAssessmentId) {
       setLocalAssessmentId(newAssessmentId);
       if (onAssessmentIdChange) {
