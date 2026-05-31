@@ -351,3 +351,9 @@ Edit `src/utils/analytics.js` - add function following existing pattern.
 - **Remote:** https://github.com/yaronsivan/assessor.git
 - **Branch:** main
 - **Location:** `/web/` directory contains the git repo
+
+## Magazine round-trip (added 2026-05-31)
+
+When entered as `?source=magazine&issue=<slug>&email=<email>` (from the Ulpan Magazine level-test ad): the email pre-fills (we ask for the NAME first), and the origin is stored on the `assessments.referrer` column (`magazine:<issue>`). On the results page, magazine referrals see "Read this issue at your level →", which calls the serverless function **`api/magazine-link.js`**. That maps `recommendedLevel`/`beyondMaxLevel` → a magazine level (A1..C1) and HMAC-signs a grant token (`{iss,lvl,exp}`, base64url payload + `.` + base64url HMAC-SHA256), returning `https://ulpan-magazine.vercel.app/api/grant?token=...`. The magazine verifies it and unlocks that issue at that level, no sign-in.
+
+**Env:** `MAGAZINE_GRANT_SECRET` (server-side) — must be the SAME value as the magazine's Vercel env. Token format must stay byte-identical to the magazine's `lib/grant.ts`. Env changes need a redeploy.
