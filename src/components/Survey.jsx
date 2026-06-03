@@ -120,6 +120,18 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
   };
 
+  // On mobile the on-screen keyboard can cover the bottom-anchored form.
+  // The viewport meta (interactive-widget=resizes-content) handles this on
+  // Android, but iOS Safari ignores it — so when an input gains focus we also
+  // scroll it to the centre of the (now shorter) visual viewport. The delay
+  // lets the keyboard finish animating before we measure where to scroll.
+  const scrollInputIntoView = (e) => {
+    const el = e.currentTarget;
+    setTimeout(() => {
+      el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 300);
+  };
+
   const handleNameSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
@@ -372,6 +384,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onFocus={scrollInputIntoView}
               placeholder="Enter your name"
               className="w-full px-6 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm"
               autoFocus
@@ -402,6 +415,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
                 setFormData({ ...formData, email: e.target.value });
                 if (emailSuggestion) setEmailSuggestion(null);
               }}
+              onFocus={scrollInputIntoView}
               onBlur={(e) => {
                 const val = e.target.value.trim();
                 if (!val) {
@@ -471,6 +485,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
+                onFocus={scrollInputIntoView}
                 placeholder="54 123 4567"
                 className="flex-1 px-4 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none shadow-pixel-sm"
                 name="phone"
@@ -568,6 +583,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
                 type="number"
                 value={formData.months}
                 onChange={(e) => setFormData({ ...formData, months: e.target.value, totalHours: '' })}
+                onFocus={scrollInputIntoView}
                 placeholder="e.g., 6"
                 min="0"
                 className="w-full px-6 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm"
@@ -583,6 +599,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
                 type="number"
                 value={formData.weeklyHours}
                 onChange={(e) => setFormData({ ...formData, weeklyHours: e.target.value, totalHours: '' })}
+                onFocus={scrollInputIntoView}
                 placeholder="e.g., 3"
                 min="0"
                 step="0.5"
@@ -601,6 +618,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
                 type="number"
                 value={formData.totalHours}
                 onChange={(e) => setFormData({ ...formData, totalHours: e.target.value, months: '', weeklyHours: '' })}
+                onFocus={scrollInputIntoView}
                 placeholder="e.g., 100"
                 min="0"
                 className="w-full px-6 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none text-center shadow-pixel-sm"
