@@ -23,8 +23,12 @@ export function generateEmailContent(profile, results) {
   };
 
   const levelCode = getLevelCode(recommendedLevel);
-  const inPersonCourseUrl = `https://ulpan.co.il/course/${levelCode}/`;
-  const onlineCourseUrl = `https://ulpan.co.il/course/o-${levelCode}/`;
+  // ulpan.co.il has no /course/b-1-1/ or /course/b-2-1/ page (Gimmel B1.1, Dalet
+  // B2.1) — both 404. Map to the generic level page; online Dalet uses the hub.
+  const inPersonSlug = ({ 'b-1-1': 'b-1', 'b-2-1': 'b-2' })[levelCode] || levelCode;
+  const onlineSlug = ({ 'b-1-1': 'o-b-1', 'b-2-1': 'online-courses' })[levelCode] || `o-${levelCode}`;
+  const inPersonCourseUrl = `https://ulpan.co.il/course/${inPersonSlug}/`;
+  const onlineCourseUrl = `https://ulpan.co.il/course/${onlineSlug}/`;
   const assessmentBookingUrl = 'https://cal.com/ulpan-bayit-level-assessments/20-minute-hebrew-level-assessment';
   const whatsappUrl = `https://wa.me/972555578088?text=${encodeURIComponent(`Hi! My name is ${userName} and I just finished the level test online. I got level ${recommendedLevel}. I'd like to get more info and to set up an in-person level assessment. Toda!`)}`;
 
