@@ -87,6 +87,7 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
             name: profile?.name,
             phone: profile?.phone || undefined,
             level: results.recommendedLevel,
+            assessmentId: propAssessmentId,
             organization: 'ulpan_bayit',
           }),
         });
