@@ -17,7 +17,7 @@ function ContactModal({ isOpen, onClose }) {
 
   const handleWhatsApp = () => {
     const message = encodeURIComponent("I came from the level assessments page and I'd like to get more information");
-    window.open(`https://wa.me/972555578088?text=${message}`, '_blank');
+    window.open(`https://wa.me/97233763626?text=${message}`, '_blank');
     onClose();
   };
 

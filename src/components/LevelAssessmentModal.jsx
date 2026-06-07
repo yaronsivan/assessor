@@ -11,7 +11,7 @@ function LevelAssessmentModal({ isOpen, onClose, profile, recommendedLevel }) {
     const message = encodeURIComponent(
       `Hi! My name is ${name} and I just finished the level test online. I got level ${level}. I'd like to get more info and to set up an in-person level assessment. Toda!`
     );
-    window.open(`https://wa.me/972555578088?text=${message}`, '_blank');
+    window.open(`https://wa.me/97233763626?text=${message}`, '_blank');
     onClose();
   };
 
