@@ -35,9 +35,12 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
   const [assessmentId, setAssessmentId] = useState(propAssessmentId);
   const [magazineLinkState, setMagazineLinkState] = useState('idle'); // 'idle' | 'loading' | 'error'
+  const [aktualiLinkState, setAktualiLinkState] = useState('idle'); // 'idle' | 'loading' | 'error'
   const resultsStartTime = useRef(Date.now());
 
   const isMagazineReferral = source === 'magazine' && Boolean(issue);
+  // אקטואלי's leveltest ad lives on its MAIN page (no issue) — referral keys on source alone.
+  const isAktualiReferral = source === 'aktuali';
 
   // Mint a signed grant via our serverless function and bounce the reader to
   // the magazine's current issue, unlocked at their assessed level. The
@@ -62,6 +65,29 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
     } catch (err) {
       console.error('Failed to mint magazine link:', err);
       setMagazineLinkState('error');
+    }
+  };
+
+  // Mint a signed grant via our serverless function and bounce the reader back
+  // to אקטואלי, which presets every story to their assessed level. No issue —
+  // the אקטואלי leveltest ad is on its main page, so the grant carries only a
+  // level. Maps recommendedLevel/beyondMax → אקטואלי level (single source of
+  // truth, mirrored in aktuali's lib/assessor-level.ts).
+  const handleAktualiReadAtLevel = async () => {
+    setAktualiLinkState('loading');
+    try {
+      const res = await fetch(
+        `/api/aktuali-link?level=${encodeURIComponent(results.recommendedLevel)}` +
+          `&beyondMax=${results.beyondMaxLevel ? '1' : '0'}`
+      );
+      if (!res.ok) throw new Error(`aktuali-link ${res.status}`);
+      const { url } = await res.json();
+      if (!url) throw new Error('aktuali-link: missing url');
+      trackEvent('aktuali_read_at_level_click', { level: results.recommendedLevel });
+      window.location.href = url;
+    } catch (err) {
+      console.error('Failed to mint aktuali link:', err);
+      setAktualiLinkState('error');
     }
   };
 
@@ -274,6 +300,49 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
             {magazineLinkState === 'error' && (
               <p className="text-amber-200 text-sm text-center">
                 We couldn't unlock the issue automatically — open the magazine above.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* אקטואלי round-trip CTA — only for readers who came from אקטואלי */}
+        {isAktualiReferral && (
+          <div className="mb-8 flex flex-col items-center gap-3">
+            {aktualiLinkState === 'error' ? (
+              <a
+                href="https://aktuali.co.il"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="
+                  bg-amber-500 hover:bg-amber-600
+                  text-white text-xl font-bold
+                  px-10 py-4 border-4 border-amber-700
+                  shadow-pixel-lg active:translate-y-1 active:shadow-pixel
+                  transition-all duration-200
+                  inline-flex items-center justify-center gap-3 text-center
+                "
+              >
+                Open אקטואלי →
+              </a>
+            ) : (
+              <button
+                onClick={handleAktualiReadAtLevel}
+                disabled={aktualiLinkState === 'loading'}
+                className="
+                  bg-amber-500 hover:bg-amber-600 disabled:bg-gray-400
+                  text-white text-xl font-bold
+                  px-10 py-4 border-4 border-amber-700 disabled:border-gray-600
+                  shadow-pixel-lg active:translate-y-1 active:shadow-pixel
+                  transition-all duration-200
+                  inline-flex items-center justify-center gap-3 text-center
+                "
+              >
+                {aktualiLinkState === 'loading' ? 'Opening…' : 'Read אקטואלי at your level →'}
+              </button>
+            )}
+            {aktualiLinkState === 'error' && (
+              <p className="text-amber-200 text-sm text-center">
+                We couldn't set your level automatically — open אקטואלי above.
               </p>
             )}
           </div>
