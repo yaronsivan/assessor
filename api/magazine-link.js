@@ -87,6 +87,6 @@ export default function handler(req, res) {
   const token = `${payloadB64}.${sig}`;
 
   res.status(200).json({
-    url: `https://ulpan-magazine.vercel.app/api/grant?token=${encodeURIComponent(token)}`,
+    url: `https://magazine.aktuali.co.il/api/grant?token=${encodeURIComponent(token)}`,
   });
 }

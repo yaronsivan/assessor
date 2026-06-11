@@ -267,7 +267,7 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
           <div className="mb-8 flex flex-col items-center gap-3">
             {magazineLinkState === 'error' ? (
               <a
-                href="https://ulpan-magazine.vercel.app"
+                href="https://magazine.aktuali.co.il"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="
