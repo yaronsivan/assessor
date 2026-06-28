@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { readUtm } from '../lib/utm';
 
 function ContactModal({ isOpen, onClose }) {
   const [view, setView] = useState('options'); // 'options', 'form'
@@ -33,6 +34,11 @@ function ContactModal({ isOpen, onClose }) {
     setSubmitError('');
 
     try {
+      const utm = readUtm();
+      const utmFields = Object.fromEntries(
+        Object.entries(utm).filter(([, v]) => v !== undefined)
+      );
+
       const response = await fetch('https://web-umber-rho-91.vercel.app/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,6 +50,7 @@ function ContactModal({ isOpen, onClose }) {
           email: formData.email,
           ...(formData.phone ? { phoneNumber: formData.phone } : {}),
           notes: formData.message,
+          ...utmFields,
         }),
       });
 
