@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getAttribution } from './utm';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://svgdyrsfxcausecwrgbc.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2Z2R5cnNmeGNhdXNlY3dyZ2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0ODE0MTYsImV4cCI6MjA4MDA1NzQxNn0.5mauFuooWrYgzqRliGGBTcD0okrnNJzZklfwbLVyOyE';
@@ -52,6 +53,7 @@ export async function saveAssessmentStart(name, email, phone = null, source = ''
     const { data, error } = await supabase
       .from('assessments')
       .insert({
+        ...getAttribution(),
         name,
         email,
         phone: phone || null,
@@ -195,6 +197,7 @@ export async function saveAssessmentComplete(sessionId, profile, results, webhoo
       const { data, error } = await supabase
         .from('assessments')
         .insert({
+          ...getAttribution(),
           name: profile.name,
           email: profile.email,
           session_started_at: new Date().toISOString(),

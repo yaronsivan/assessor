@@ -12,6 +12,7 @@ import titleImage from './assets/great assessor2.png';
 import { getMessage } from './config/messages';
 import { initFacebookPixel, initGA4 } from './utils/analytics';
 import { trackAbandonment } from './lib/supabase';
+import { captureUtm } from './lib/utm';
 
 const PHASES = {
   WELCOME: 'welcome',
@@ -50,6 +51,11 @@ function MainApp() {
   const [surveyMessage, setSurveyMessage] = useState(null);
   const [assessmentId, setAssessmentId] = useState(null);
   const currentPhaseRef = useRef(phase);
+
+  // Capture first-touch UTM / click-id attribution on mount
+  useEffect(() => {
+    captureUtm();
+  }, []);
 
   // Keep ref in sync with phase for abandonment tracking
   useEffect(() => {
