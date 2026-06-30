@@ -45,6 +45,7 @@ function ContactModal({ isOpen, onClose }) {
         body: JSON.stringify({
           organization: 'ulpan_bayit',
           source: 'assessor_contact_form',
+          consent: true, // guarded above (returns on !formData.consent) — POST only happens with consent
           studentStatus: 'prospect',
           fullName: formData.name,
           email: formData.email,
