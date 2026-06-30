@@ -48,6 +48,21 @@ describe('readClickIds', () => {
     document.cookie = 'click_gclid=gc456; path=/';
     expect(readClickIds()).toEqual({ fbclid: 'fb123', gclid: 'gc456' });
   });
+
+  it('returns nulls without throwing when document.cookie access throws (sandboxed iframe)', () => {
+    const original = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      get() { throw new DOMException('blocked', 'SecurityError'); },
+    });
+    try {
+      expect(() => readClickIds()).not.toThrow();
+      expect(readClickIds()).toEqual({ fbclid: null, gclid: null });
+    } finally {
+      if (original) Object.defineProperty(document, 'cookie', original);
+      else delete document.cookie;
+    }
+  });
 });
 
 describe('getAttribution', () => {

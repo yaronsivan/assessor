@@ -84,8 +84,14 @@ export function captureUtm({ search = window.location.search, href = window.loca
 
 function readCookie(name) {
   if (typeof document === 'undefined') return null;
-  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
-  return m ? decodeURIComponent(m[1]) : null;
+  try {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  } catch {
+    // document.cookie can throw SecurityError in a sandboxed iframe — never let
+    // attribution lookup break the assessment save.
+    return null;
+  }
 }
 
 export function readClickIds() {
