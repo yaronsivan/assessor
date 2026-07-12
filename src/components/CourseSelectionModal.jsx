@@ -1,42 +1,18 @@
 import { trackResultsAction } from '../lib/supabase';
+import { courseUrl } from '../lib/course-links';
 
 function CourseSelectionModal({ isOpen, onClose, recommendedLevel, assessmentId }) {
   if (!isOpen) return null;
 
-  // Extract the level code from the full level name
-  // E.g., "Aleph (A1.1)" -> "a-1-1", "Bet (A2.1)" -> "a-2-1"
-  const getLevelCode = (levelName) => {
-    const match = levelName.match(/\(([^)]+)\)/);
-    if (!match) return 'a-1-1';
-
-    // Extract pattern like "A1.1" or "B2.1"
-    const parts = match[1].match(/([A-Z])(\d)\.(\d)/);
-    if (!parts) return 'a-1-1';
-
-    // Convert to "a-1-1" format
-    const letter = parts[1].toLowerCase();
-    const num1 = parts[2];
-    const num2 = parts[3];
-
-    return `${letter}-${num1}-${num2}`;
-  };
-
-  const levelCode = getLevelCode(recommendedLevel);
-  // ulpan.co.il has no /course/b-1-1/ or /course/b-2-1/ page (Gimmel B1.1, Dalet
-  // B2.1) — both 404. Map them to the generic level page ('Gimmel' / 'Dalet');
-  // online Gimmel -> o-b-1, online Dalet -> the online-courses hub (no o-b-2).
-  const inPersonSlug = ({ 'b-1-1': 'b-1', 'b-2-1': 'b-2' })[levelCode] || levelCode;
-  const onlineSlug = ({ 'b-1-1': 'o-b-1', 'b-2-1': 'online-courses' })[levelCode] || `o-${levelCode}`;
-
   const handleInPerson = () => {
     trackResultsAction(assessmentId, 'select_course_type', { courseType: 'in_person', level: recommendedLevel });
-    window.open(`https://ulpan.co.il/course/${inPersonSlug}/`, '_blank');
+    window.open(courseUrl(recommendedLevel, 'In-Person'), '_blank');
     onClose();
   };
 
   const handleOnline = () => {
     trackResultsAction(assessmentId, 'select_course_type', { courseType: 'online', level: recommendedLevel });
-    window.open(`https://ulpan.co.il/course/${onlineSlug}/`, '_blank');
+    window.open(courseUrl(recommendedLevel, 'Online'), '_blank');
     onClose();
   };
 
