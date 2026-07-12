@@ -1,3 +1,5 @@
+import { courseUrl } from '../lib/course-links';
+
 export function generateEmailContent(profile, results) {
   const capitalizeFirstLetter = (str) => {
     if (!str) return '';
@@ -10,25 +12,8 @@ export function generateEmailContent(profile, results) {
   // Get the detailed analysis in a more conversational tone
   const analysis = generateEmailAnalysis(profile, results);
 
-  // Extract level code for URLs
-  const getLevelCode = (levelName) => {
-    const match = levelName.match(/\(([^)]+)\)/);
-    if (!match) return 'a-1-1';
-    const parts = match[1].match(/([A-Z])(\d)\.(\d)/);
-    if (!parts) return 'a-1-1';
-    const letter = parts[1].toLowerCase();
-    const num1 = parts[2];
-    const num2 = parts[3];
-    return `${letter}-${num1}-${num2}`;
-  };
-
-  const levelCode = getLevelCode(recommendedLevel);
-  // ulpan.co.il has no /course/b-1-1/ or /course/b-2-1/ page (Gimmel B1.1, Dalet
-  // B2.1) — both 404. Map to the generic level page; online Dalet uses the hub.
-  const inPersonSlug = ({ 'b-1-1': 'b-1', 'b-2-1': 'b-2' })[levelCode] || levelCode;
-  const onlineSlug = ({ 'b-1-1': 'o-b-1', 'b-2-1': 'online-courses' })[levelCode] || `o-${levelCode}`;
-  const inPersonCourseUrl = `https://ulpan.co.il/course/${inPersonSlug}/`;
-  const onlineCourseUrl = `https://ulpan.co.il/course/${onlineSlug}/`;
+  const inPersonCourseUrl = courseUrl(recommendedLevel, 'In-Person');
+  const onlineCourseUrl = courseUrl(recommendedLevel, 'Online');
   const assessmentBookingUrl = 'https://cal.com/ulpan-bayit-level-assessments/20-minute-hebrew-level-assessment';
   const whatsappUrl = `https://wa.me/97233763626?text=${encodeURIComponent(`Hi! My name is ${userName} and I just finished the level test online. I got level ${recommendedLevel}. I'd like to get more info and to set up an in-person level assessment. Toda!`)}`;
 
