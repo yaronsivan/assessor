@@ -1,4 +1,5 @@
 // Facebook Pixel and GA4 tracking utilities
+import { readClickIds } from '../lib/utm';
 
 // Initialize Facebook Pixel
 export const initFacebookPixel = () => {
@@ -41,7 +42,12 @@ export const initGA4 = () => {
   window.dataLayer = window.dataLayer || [];
   window.gtag = function(){window.dataLayer.push(arguments);};
   window.gtag('js', new Date());
-  window.gtag('config', measurementId);
+  // Cross-domain linker (Roy/Ziggy Google Ads brief 2026-07-23): decorate
+  // links to ulpan.co.il hosts and accept the incoming _gl param so the
+  // ad-click id survives the www.ulpan.co.il → assessor.ulpan.co.il hop.
+  window.gtag('config', measurementId, {
+    linker: { domains: ['ulpan.co.il'], accept_incoming: true },
+  });
 
   // Then load the GA4 script
   const script = document.createElement('script');
@@ -95,6 +101,22 @@ export const trackAssessmentCompleted = (level) => {
   });
   // Also track as Lead for Facebook
   trackFBEvent('Lead', { content_name: `Level ${level}` });
+  // GTM-facing conversion event (Roy/Ziggy Google Ads brief 2026-07-23):
+  // the GTM-N4C8LK6 container's Google Ads conversion triggers on this
+  // exact event name. Keep it snake_case and separate from the gtag-style
+  // AssessmentCompleted above.
+  try {
+    const { gclid, fbclid } = readClickIds();
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'assessment_completed',
+      assessment_level: level,
+      ...(gclid ? { gclid } : {}),
+      ...(fbclid ? { fbclid } : {}),
+    });
+  } catch {
+    // Never break the results screen over telemetry.
+  }
 };
 
 export const trackViewCourses = (level) => {
