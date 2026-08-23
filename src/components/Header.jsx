@@ -13,7 +13,7 @@ function Header() {
           <div className="flex items-center gap-3">
             <a href="https://ulpan.co.il" className="inline-block" aria-label="Ulpan Bayit home" target="_blank" rel="noopener noreferrer">
               <img
-                src="https://ulpan.co.il/wp-content/uploads/logo-full-320.png"
+                src="/brand/logo-full-320.png"
                 alt="Ulpan Bayit logo"
                 className="h-8 w-auto"
               />
