@@ -8,7 +8,7 @@ import GateFail from './components/GateFail';
 import Game from './components/Game';
 import Results from './components/Results';
 import Stats from './components/Stats';
-import titleImage from './assets/great assessor2.png';
+import titleImage from './assets/great-assessor.webp';
 import { getMessage } from './config/messages';
 import { initFacebookPixel, initGA4 } from './utils/analytics';
 import { trackAbandonment } from './lib/supabase';
