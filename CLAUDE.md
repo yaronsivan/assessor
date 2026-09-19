@@ -284,9 +284,45 @@ Two traps worth knowing before you debug one of these:
   `PerformanceObserver` on `layout-shift`; the entries' `sources[].previousRect`
   / `currentRect` tell you exactly which box moved and by how much.
 
-Current intrinsic sizes: `great assessor2.png` 1024x740, `genie yaron.png`
+Current intrinsic sizes: `great-assessor.webp` 1024x740, `genie.webp`
 864x1184, `brand/logo-full-320.png` 667x129. **Re-export an asset, update the
 attributes.**
+
+### Ship page images as WebP, and preload the hero
+
+The two big images are **WebP q80**, not PNG. They were PNGs until Sept 2026 and
+cost 601KB + 804KB; as WebP they are 94KB + 41KB -- a 90% cut with no visible
+difference (checked at true display size, 3x zoom, and by PSNR over a flattened
+background: 33dB title, 41dB genie). There is no lossless option worth taking:
+these are AI-generated art with ~85,000 unique colours, so palette quantisation
+is lossy and truecolour PNG recompression comes out *larger* than the source.
+
+Two traps if you re-export:
+
+- **Do not downscale.** Both are already sized for a 3x phone
+  (`great-assessor` 1024px for a 320 CSS px box, `genie` 864px for 393). They
+  look oversized only if you forget DPR.
+- **PSNR on raw RGBA is meaningless here.** WebP rewrites the RGB channel under
+  fully-transparent pixels, which drags the number to ~16dB while the image is
+  in fact pristine. Flatten over the background colour first, then compare.
+
+`vite.config.js` carries a small `preloadHero()` plugin. The hero is the LCP
+element but is imported from JS, so the preload scanner never sees it and the
+download cannot start until the bundle has parsed -- that was **6.7s** of an
+18.8s mobile LCP. The plugin finds the content-hashed asset in the bundle and
+injects `<link rel="preload" as="image">`. It **throws** if it cannot find the
+asset, so renaming the hero fails the build instead of silently losing the
+preload; update `SOURCE` in the plugin when you rename it.
+
+`vercel.json` sets `max-age=31536000, immutable` on `/assets/*`. Everything was
+previously served `max-age=0, must-revalidate` -- including content-hashed
+files, which are safe to cache forever by construction. Only `headers` is set
+there, so Vercel's auto-detected Vite build and SPA routing are untouched.
+
+Measured effect of the two changes together, throttled Pixel 5 (Slow 4G, 4x
+CPU), local production builds: **LCP 12.2s -> 2.4s**, CLS unchanged at 0.0038.
+(The live page measures higher than the local baseline because of ~1MB of
+third-party tags from the GTM container -- that is Roy's, not ours.)
 
 ---
 

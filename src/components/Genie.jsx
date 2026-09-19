@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import genieImage from '../assets/genie yaron.png';
+import genieImage from '../assets/genie.webp';
 
 function Genie({ animated = false }) {
   const [genieEntered, setGenieEntered] = useState(false);
