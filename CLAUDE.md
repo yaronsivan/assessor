@@ -257,6 +257,37 @@ Questions are Hebrew fill-in-the-blank or grammar multiple choice.
 - **Desktop (md+):** Genie 1/3, content 2/3
 - **Mobile:** Genie top, content below
 
+### Every `<img>` MUST carry `width` and `height`
+
+Give every image its **intrinsic** pixel size as attributes, even when Tailwind
+already sizes it (`h-auto`, `w-auto`, `max-w-xs`, `w-[1024px]`). The attributes
+don't fight the classes — the browser derives an aspect ratio from them and
+reserves the box before the file arrives, then the CSS still decides the
+rendered size.
+
+Skipping this is how `https://assessor.ulpan.co.il/` earned a Google Search
+Console **"CLS issue: more than 0.25 (mobile)"** in Sept 2026 (field CLS 0.38).
+The mobile welcome screen is especially unforgiving: the content block is
+*bottom-anchored* (a `flex-1` spacer above a `flex-shrink-0` block), so an image
+that gains height at the top of it shoves the whole block **up** the viewport.
+`great assessor2.png` is 1024x740 = 231px tall at `max-w-xs`, and it moved
+everything 216px on arrival — 0.30 of the 0.31 total CLS on its own.
+
+Two traps worth knowing before you debug one of these:
+
+- **Lighthouse's root-cause attribution lies here.** It labelled both shifts
+  "Web font loaded" and named the Open Sans woff2. Blocking Google Fonts
+  entirely left CLS at 0.302-0.308 — unchanged. Always isolate by *blocking the
+  suspect resource* and re-measuring before you believe the attribution.
+- **A local `npm run build` + `serve` won't show the shift** unless you throttle.
+  Reproduce with a mobile emulation + Slow 4G + 4x CPU and a
+  `PerformanceObserver` on `layout-shift`; the entries' `sources[].previousRect`
+  / `currentRect` tell you exactly which box moved and by how much.
+
+Current intrinsic sizes: `great assessor2.png` 1024x740, `genie yaron.png`
+864x1184, `brand/logo-full-320.png` 667x129. **Re-export an asset, update the
+attributes.**
+
 ---
 
 ## Environment Variables

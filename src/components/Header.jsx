@@ -15,6 +15,8 @@ function Header() {
               <img
                 src="/brand/logo-full-320.png"
                 alt="Ulpan Bayit logo"
+                width={667}
+                height={129}
                 className="h-8 w-auto"
               />
             </a>

@@ -31,6 +31,8 @@ function Genie({ animated = false }) {
           <img
             src={genieImage}
             alt="Assessor the Genie"
+            width={864}
+            height={1184}
             className={animated ? "w-[1400px] h-auto filter drop-shadow-2xl" : "w-[1024px] h-auto filter drop-shadow-2xl"}
           />
 

@@ -190,6 +190,8 @@ function MainApp() {
                 <img
                   src={titleImage}
                   alt="The Great Assessor"
+                  width={1024}
+                  height={740}
                   className="mx-auto w-full max-w-md h-auto filter drop-shadow-2xl"
                 />
               </div>
@@ -301,6 +303,8 @@ function MainApp() {
                     <img
                       src={titleImage}
                       alt="The Great Assessor"
+                      width={1024}
+                      height={740}
                       className="mx-auto w-full max-w-xs h-auto filter drop-shadow-2xl"
                     />
                   </div>
