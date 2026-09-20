@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { trackWhatsAppClick, trackCalComBooking } from '../utils/analytics';
+import { trackWhatsAppClick, trackBookingCtaClick } from '../utils/analytics';
+import { bookingHref } from '../lib/booking';
 
 function LevelAssessmentModal({ isOpen, onClose, profile, recommendedLevel }) {
   if (!isOpen) return null;
@@ -15,9 +15,14 @@ function LevelAssessmentModal({ isOpen, onClose, profile, recommendedLevel }) {
     onClose();
   };
 
-  const handleCalendly = () => {
-    trackCalComBooking(recommendedLevel);
-    window.open('https://cal.com/ulpan-bayit-level-assessments/20-minute-hebrew-level-assessment', '_blank');
+  // The booker is ours now (crm.ulpan.co.il), not cal.com — see
+  // src/lib/booking.js. Still a new tab: this modal sits on top of a results
+  // screen the student may well want to come back to, and unlike /intro on
+  // ulpan.co.il there is no page here to return to with the back button once
+  // the SPA has been left.
+  const handleBookOnline = () => {
+    trackBookingCtaClick(recommendedLevel, 'genie_modal');
+    window.open(bookingHref('genie_modal'), '_blank', 'noopener');
     onClose();
   };
 
@@ -59,12 +64,12 @@ function LevelAssessmentModal({ isOpen, onClose, profile, recommendedLevel }) {
               💬 Contact us via WhatsApp
             </button>
 
-            {/* Cal.com Option */}
+            {/* Book a slot ourselves (crm.ulpan.co.il) */}
             <button
-              onClick={handleCalendly}
+              onClick={handleBookOnline}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold px-8 py-6 border-4 border-blue-700 shadow-pixel active:translate-y-1 active:shadow-pixel-sm transition-all"
             >
-              📅 Schedule Online
+              📅 Book a free Intro Session
             </button>
           </div>
         </div>

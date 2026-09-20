@@ -9,7 +9,7 @@ This app tracks user behavior using Facebook Pixel and Google Analytics 4 (GA4).
 3. **ViewCourses** - When user clicks "View Courses" button
 4. **ScheduleAssessment** - When user clicks "Schedule In-Person Assessment"
 5. **WhatsAppClick** - When user clicks WhatsApp contact button
-6. **CalComBooking** - When user clicks Cal.com booking button
+6. **BookingCtaClick** - When user clicks the Intro Session booking button (also pushes a `cta_click` / `intro_session_booking` dataLayer event — a CLICK, never a lead event)
 7. **ContactUsClick** - When user clicks "Contact Us" in header
 
 ## Setup in Vercel
@@ -79,6 +79,6 @@ If you want to test tracking locally:
 
 The following events are also tracked as Facebook conversion events:
 - **Lead** - Fired when assessment is completed
-- **Contact** - Fired when user clicks WhatsApp, Cal.com, or Contact Us
+- **Contact** - Fired when user clicks WhatsApp, the Intro Session booking button, or Contact Us
 
 These can be used for Facebook Ads optimization and retargeting.

@@ -14,7 +14,19 @@ export function generateEmailContent(profile, results) {
 
   const inPersonCourseUrl = courseUrl(recommendedLevel, 'In-Person');
   const onlineCourseUrl = courseUrl(recommendedLevel, 'Online');
-  const assessmentBookingUrl = 'https://cal.com/ulpan-bayit-level-assessments/20-minute-hebrew-level-assessment';
+  // Our own booker since 2026-09-20 (cal.com bookings never reached the CRM).
+  // Plain UTMs, no click ids: this string is rendered into an EMAIL, which may
+  // be opened days later on another device, so the reader's cookies are not
+  // ours to read and a stale click id would be worse than none.
+  //
+  // ⚠️ Nothing in this repo imports `generateEmailContent` any more — the
+  // results email a student actually receives is built and sent by the CRM
+  // (`/api/email/send-assessment-result`, see CRM_RESULTS_URL in Results.jsx)
+  // from a `email_templates` row that holds its OWN copy of this link. Fixing
+  // the link here does NOT fix the email; that row has to be edited in the CRM
+  // (plan item B4). Kept in sync anyway so a revival doesn't resurrect cal.com.
+  const assessmentBookingUrl =
+    'https://crm.ulpan.co.il/book/ulpan_bayit?utm_source=assessor_site&utm_medium=results_email&utm_campaign=intro_session&via=genie_report';
   const whatsappUrl = `https://wa.me/97233763626?text=${encodeURIComponent(`Hi! My name is ${userName} and I just finished the level test online. I got level ${recommendedLevel}. I'd like to get more info and to set up an in-person level assessment. Toda!`)}`;
 
   // Build the HTML email - fully compact to avoid whitespace issues in email clients

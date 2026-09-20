@@ -28,7 +28,7 @@
 │   │   ├── Header.jsx        # Navigation, contact modal
 │   │   ├── Genie.jsx         # Animated genie character
 │   │   ├── CourseSelectionModal.jsx   # In-person vs online course
-│   │   ├── LevelAssessmentModal.jsx   # WhatsApp/Cal.com booking
+│   │   ├── LevelAssessmentModal.jsx   # WhatsApp / Intro Session booking
 │   │   └── ContactModal.jsx  # Contact form
 │   ├── hooks/
 │   │   ├── useQuestions.js   # CSV question loading (PapaParse)
@@ -173,7 +173,7 @@ recommendedLevel = finishedLevel + 1  // Where to START studying
 - Generates text + HTML reports
 - Sends results webhook to Make.com
 - Course selection modal (in-person vs online)
-- Assessment booking modal (WhatsApp vs Cal.com)
+- Assessment booking modal (WhatsApp vs our own booking page)
 
 ---
 
@@ -208,7 +208,20 @@ recommendedLevel = finishedLevel + 1  // Where to START studying
 - **Facebook Pixel:** PageView, Lead (on completion), Contact events
 
 ### External Services
-- **Cal.com:** In-person assessment booking
+- **Booking (`crm.ulpan.co.il/book/ulpan_bayit`):** the free Intro Session.
+  Replaced cal.com on 2026-09-20 — cal.com bookings never reached the CRM
+  (`api/webhooks/cal-com` has been dead for months), so they produced no lead,
+  no appointment, no reminder and no Zoom room on our side.
+  **`src/lib/booking.js` is the ONE place naming that URL.** `bookingHref(via)`
+  gives the visitor's OWN first-touch `utm_*` all the slots when they have any,
+  this site's triple (`assessor_site` / `results` / `intro_session`) when they
+  do not, always appends `gclid`/`fbclid` from the 90-day cookies, and marks
+  the surface with `via=` (`genie_modal`, `genie_tzabar`, `genie_report`).
+  ⚠️ The click is reported as `cta_click` / `intro_session_booking` — **never
+  `form_submit` or `generate_lead`**, which the shared PPC container counts as
+  Google Ads leads on every site that loads it, with no hostname filter. The
+  booking conversion belongs to the CRM booking page, which has no GTM
+  container yet.
 - **WhatsApp:** +972-55-557-8088
 - **Ulpan Bayit:** Course pages at ulpan.co.il/course/{level-code}/
 
