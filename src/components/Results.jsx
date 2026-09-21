@@ -4,6 +4,7 @@ import CourseSelectionModal from './CourseSelectionModal';
 import LevelAssessmentModal from './LevelAssessmentModal';
 import { trackAssessmentCompleted, trackViewCourses, trackScheduleAssessment, trackEvent } from '../utils/analytics';
 import { saveAssessmentComplete, trackResultsAction, trackResultsExit } from '../lib/supabase';
+import { bookingHref } from '../lib/booking';
 
 // Track sent webhooks at module level to survive StrictMode remounts
 const sentWebhooks = new Set();
@@ -351,8 +352,14 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
         {/* Action Buttons */}
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
           {source === 'tzabar' && getTzabarLevel(results) && (
+            // tzabar.ulpan.co.il is retired (308 → ulpan.co.il), so this CTA
+            // was dropping Garin Tzabar students on a homepage with a stray
+            // `?level=…#courses`. It books an Intro Session now, like every
+            // other public booking path. The assessed level still travels —
+            // `tzabar_level` on the event, and the CRM learns it from the
+            // assessment record, not from this href.
             <a
-              href={`https://tzabar.ulpan.co.il/?level=${getTzabarLevel(results)}#courses`}
+              href={bookingHref('genie_tzabar', { utm_medium: 'results_tzabar' })}
               onClick={() => trackEvent('tzabar_register_click', {
                 level: results.recommendedLevel,
                 tzabar_level: getTzabarLevel(results),

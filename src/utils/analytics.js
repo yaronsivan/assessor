@@ -145,14 +145,44 @@ export const trackWhatsAppClick = (level) => {
   trackFBEvent('Contact', { content_name: 'WhatsApp' });
 };
 
-export const trackCalComBooking = (level) => {
-  trackEvent('CalComBooking', {
+/**
+ * A click towards our own booking page (crm.ulpan.co.il) — AND ONLY THE CLICK.
+ *
+ * Replaces `trackCalComBooking` (2026-09-20). The name changed deliberately:
+ * `CalComBooking` never meant a booking either — it fired on the click, and
+ * cal.com never told us the rest — so reusing it for a different destination
+ * would silently change what every historical row in reporting means.
+ *
+ * ⚠️ The `cta_click` dataLayer name matters. The PPC container `GTM-N4C8LK6`,
+ * which this site loads, fires its Google Ads lead conversion on ANY
+ * `form_submit` OR `generate_lead` event with no hostname filter — so a click
+ * towards the booker must never be reported as either. The booking conversion
+ * itself belongs to the CRM booking page, which carries no GTM container yet.
+ */
+export const trackBookingCtaClick = (level, via) => {
+  trackEvent('BookingCtaClick', {
     event_category: 'contact',
-    event_label: 'Clicked Cal.com Booking',
-    recommended_level: level
+    event_label: 'Clicked Intro Session Booking',
+    recommended_level: level,
+    cta_via: via,
   });
   // Track as Contact for Facebook
-  trackFBEvent('Contact', { content_name: 'Cal.com' });
+  trackFBEvent('Contact', { content_name: 'Intro Session booking' });
+  // GTM-facing click event (non-lead — see the warning above).
+  try {
+    const { gclid, fbclid } = readClickIds();
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'cta_click',
+      cta_name: 'intro_session_booking',
+      cta_via: via,
+      assessment_level: level,
+      ...(gclid ? { gclid } : {}),
+      ...(fbclid ? { fbclid } : {}),
+    });
+  } catch {
+    // Never break the results screen over telemetry.
+  }
 };
 
 export const trackContactUs = () => {
