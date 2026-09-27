@@ -4,6 +4,7 @@ import { runSurvey } from '../hooks/useSurvey';
 import { getMessage } from '../config/messages';
 import { trackAssessmentStarted } from '../utils/analytics';
 import { saveAssessmentStart, updateAssessmentProfile } from '../lib/supabase';
+import { buildLeadPhone } from '../lib/lead-phone';
 
 const CRM_API_URL = 'https://web-umber-rho-91.vercel.app/api/contacts';
 const VALIDATE_EMAIL_URL = 'https://web-umber-rho-91.vercel.app/api/validate-email';
@@ -100,6 +101,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
   });
   const [currentValidationQuestion, setCurrentValidationQuestion] = useState(null);
   const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [emailSuggestion, setEmailSuggestion] = useState(null);
   const [isSubmittingWebhook, setIsSubmittingWebhook] = useState(false);
   const [localAssessmentId, setLocalAssessmentId] = useState(null);
@@ -194,12 +196,18 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
       return;
     }
 
-    // Combine country code and phone number
-    const localNumber = phoneNumber.trim().replace(/^0+/, '');
-    const finalCountryCode = getFullCountryCode();
-    const fullPhone = localNumber ? `${finalCountryCode}${localNumber}` : null;
+    // The dial-code select is a HINT, never a prefix — see lib/lead-phone.js.
+    const phoneCountry = getFullCountryCode();
+    const leadPhone = await buildLeadPhone(phoneNumber, phoneCountry);
+    if (!leadPhone.ok) {
+      setPhoneError('Please check the phone number (outside Israel? include the country code)');
+      setIsSubmittingWebhook(false);
+      return;
+    }
+    setPhoneError('');
+    const fullPhone = leadPhone.e164;
 
-    // Update formData with the combined phone
+    // Update formData with the resolved phone
     if (fullPhone) {
       setFormData({ ...formData, phone: fullPhone });
     }
@@ -218,7 +226,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
       await submitAssessorLead({
         fullName: formData.name,
         email: formData.email,
-        ...(fullPhone ? { phoneNumber: fullPhone } : {}),
+        ...(fullPhone ? { phoneNumber: fullPhone, phoneCountry } : {}),
       });
     } catch (error) {
       console.error('CRM lead-creation failed:', error);
@@ -493,6 +501,9 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
                 inputMode="tel"
               />
             </div>
+            {phoneError && (
+              <p className="text-red-300 text-center mt-3 font-semibold">{phoneError}</p>
+            )}
 
             {/* Consent Checkbox */}
             <div className="mt-6 bg-purple-200/20 border-4 border-purple-300/40 p-4 shadow-pixel-sm">
