@@ -492,7 +492,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
               <input
                 type="tel"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={(e) => { setPhoneNumber(e.target.value); setPhoneError(''); }}
                 onFocus={scrollInputIntoView}
                 placeholder="54 123 4567"
                 className="flex-1 px-4 py-4 text-xl border-4 border-purple-300 focus:border-purple-500 focus:outline-none shadow-pixel-sm"

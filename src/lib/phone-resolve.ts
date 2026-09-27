@@ -14,7 +14,8 @@
  * ## The rule, in order — the first VALID reading wins
  *
  * 1. Clean: drop `whatsapp:`; if a `+` appears after the start, keep only from
- *    the LAST `+` (a form glued its code onto a number that named its own);
+ *    the LAST `+` that has digits after it (a form glued its code onto a
+ *    number that named its own);
  *    keep digits and `+`; `00` → `+`.
  * 2. A number that names its own country (`+…`) is read as typed. If that is
  *    invalid but has the Israeli mobile shape (`+972 0? 5X` + 8 digits), it is
@@ -42,6 +43,10 @@
  * supabase/functions/_shared) and `Sites/ulpan-genie-assessor/web/src/lib`;
  * `scripts/check-phone-resolve-sync.sh` at the umbrella root fails on drift.
  * Change this file, then copy it everywhere.
+ *
+ * `phoneLookupVariants` (the spellings a stored row may carry) lives here too,
+ * so every lookup — CRM, bot, edge functions — shares one list;
+ * `phone-e164.ts` re-exports it.
  */
 import { parsePhoneNumberFromString, getCountries, getCountryCallingCode, type CountryCode } from 'libphonenumber-js/max';
 
@@ -97,7 +102,8 @@ function unwrap(digits: string): string | null {
 
 export function resolvePhone(raw: string | null | undefined, opts: ResolvePhoneOptions = {}): PhoneResolution {
   let value = String(raw ?? '').trim().replace(/^whatsapp:/i, '');
-  const lastPlus = value.lastIndexOf('+');
+  // The last `+` that still has a digit after it (a stray trailing `+` is noise).
+  const lastPlus = value.lastIndexOf('+', value.search(/\d\D*$/));
   if (lastPlus > 0) value = value.slice(lastPlus);
   value = value.replace(/[^\d+]/g, '');
   if (!/\d/.test(value)) return { ok: false, reason: 'empty' };
@@ -132,4 +138,58 @@ export function resolvePhone(raw: string | null | undefined, opts: ResolvePhoneO
   if (international) return { ok: true, e164: international, via: 'international_digits' };
 
   return { ok: false, reason: 'unresolvable' };
+}
+
+/**
+ * Every spelling a lead row might hold for this number, canonical first; `[]`
+ * when the number does not resolve.
+ *
+ * Existing rows still carry the trunk-zero spelling until the data repair runs,
+ * and historic imports stored Israeli numbers digits-only or in local `05…`
+ * form. A lookup that tries all of them finds the person under whichever
+ * spelling they were saved with, so conversations stop splitting even before
+ * the backfill lands.
+ *
+ * Forms also stored numbers with `+972` glued onto a foreign one (`+972 49 …`,
+ * `+972 0 49 …`) or onto an Israeli one twice (`+9720972 …`); `resolvePhone`
+ * unwraps those, so the glued spellings are listed too. They can go once the
+ * phone repair has rewritten those rows.
+ *
+ * A spelling is kept only if it resolves to nothing or to THIS number. Some
+ * are another person's real number: Saint-Pierre `+508551234` glued is
+ * `+972508551234` (an Israeli mobile), and Saudi `+966501234567` in local form
+ * is `0501234567` (also Israeli). A lookup must never match a different person.
+ */
+export function phoneLookupVariants(raw: string | null | undefined): string[] {
+  const resolved = resolvePhone(raw);
+  if (!('e164' in resolved)) return [];
+  const canonical = resolved.e164;
+
+  const parsed = parsePhoneNumberFromString(canonical);
+  if (!parsed) return [canonical];
+
+  const callingCode = parsed.countryCallingCode;      // e.g. "972"
+  const national = parsed.nationalNumber;             // e.g. "542590309"
+
+  const variants = [
+    canonical,                                        // +972542590309
+    `+${callingCode}0${national}`,                    // +9720542590309  ← the trunk-zero bug
+    `${callingCode}${national}`,                      // 972542590309
+    `0${national}`,                                   // 0542590309
+    // Glued spellings real rows carry until the repair runs (see doc comment).
+    ...(callingCode === '972'
+      ? [`+9720972${national}`]                       // +9720972542590309
+      : [
+          `+972${callingCode}${national}`,            // +9724917631682387
+          `+9720${callingCode}${national}`,           // +97204917631682387
+        ]),
+  ];
+
+  const samePersonOrNobody = (v: string): boolean => {
+    if (v === canonical) return true;
+    const r = resolvePhone(v);
+    return !('e164' in r) || r.e164 === canonical;
+  };
+
+  return [...new Set(variants.filter(Boolean))].filter(samePersonOrNobody);
 }

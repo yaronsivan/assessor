@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolvePhone } from './phone-resolve';
+import { resolvePhone, phoneLookupVariants } from './phone-resolve';
 
 const ok = (raw: string, hint?: string) => {
   const r = resolvePhone(raw, { countryHint: hint });
@@ -46,6 +46,7 @@ describe('resolvePhone — unwraps a number some form wrapped in another code', 
     ['+1972542590309', '+972542590309 unwrapped'],       // +1 selected, 972… typed
     ['+97218185550142', '+18185550142 unwrapped'],       // +1 typed, + stripped, +972 glued
     ['+972+1 818 555 0142', '+18185550142 as_typed'],    // literal double plus: last + wins
+    ['+972 54-259-0309 +', '+972542590309 as_typed'],    // a stray trailing + is ignored
   ])('%s -> %s', (raw, expected) => expect(ok(raw)).toBe(expected));
 });
 
@@ -100,5 +101,78 @@ describe('resolvePhone — refuses to guess', () => {
   it('ignores an unknown hint rather than trusting it', () => {
     expect(ok('0542590309', 'XX')).toBe('+972542590309 israeli');
     expect(ok('0542590309', '+999')).toBe('+972542590309 israeli');
+  });
+});
+
+describe('phoneLookupVariants', () => {
+  // Until the stored data is repaired, a lookup has to find the lead under the
+  // spelling it was saved with as well as the canonical one.
+  it('lists every Israeli spelling, canonical first', () => {
+    expect(phoneLookupVariants('+972542590309')).toEqual([
+      '+972542590309',
+      '+9720542590309',
+      '972542590309',
+      '0542590309',
+      '+9720972542590309',
+    ]);
+  });
+
+  it('lists every German spelling, canonical first', () => {
+    expect(phoneLookupVariants('+491704537674')).toEqual([
+      '+491704537674',
+      '+4901704537674',
+      '491704537674',
+      '01704537674',
+      '+972491704537674',
+      '+9720491704537674',
+    ]);
+  });
+
+  it('reads a glued input and keeps every glued spelling', () => {
+    const foreign = phoneLookupVariants('+97249 176 31682387');
+    expect(foreign[0]).toBe('+4917631682387');
+    expect(foreign).toContain('+9724917631682387');
+    expect(foreign).toContain('+97204917631682387');
+  });
+
+  it('accepts a non-canonical input and still returns the canonical first', () => {
+    expect(phoneLookupVariants('+9720542590309')[0]).toBe('+972542590309');
+  });
+
+  it('keeps US and UK spellings', () => {
+    expect(phoneLookupVariants('+18185550142')).toContain('+97218185550142');
+    expect(phoneLookupVariants('+447911123456')).toContain('07911123456');
+  });
+
+  it('never lists a spelling that is ANOTHER valid number', () => {
+    // Saint-Pierre glued with +972 reads as an Israeli mobile.
+    const spm = phoneLookupVariants('+508551234');
+    expect(spm[0]).toBe('+508551234');
+    expect(spm).not.toContain('+972508551234');
+    expect(spm).not.toContain('+9720508551234');
+    // A Saudi mobile in local form is an Israeli mobile.
+    const sa = phoneLookupVariants('+966501234567');
+    expect(sa[0]).toBe('+966501234567');
+    expect(sa).not.toContain('0501234567');
+    // Ascension glued with +972 reads as an Israeli landline.
+    expect(phoneLookupVariants('+24740123')).not.toContain('+97224740123');
+  });
+
+  it('every listed spelling resolves to nothing or to the same number', () => {
+    for (const raw of ['+972542590309', '+491704537674', '+508551234', '+966501234567', '+24740123', '+18185550142']) {
+      const v = phoneLookupVariants(raw);
+      for (const s of v) {
+        const r = resolvePhone(s);
+        if ('e164' in r) expect(r.e164).toBe(v[0]);
+      }
+    }
+  });
+
+  it('de-duplicates, never returns empties, and returns [] for an unusable input', () => {
+    const v = phoneLookupVariants('+491704537674');
+    expect(new Set(v).size).toBe(v.length);
+    expect(v.every((x) => x.length > 0)).toBe(true);
+    expect(phoneLookupVariants('abc')).toEqual([]);
+    expect(phoneLookupVariants(null)).toEqual([]);
   });
 });
