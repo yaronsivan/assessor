@@ -176,3 +176,79 @@ describe('phoneLookupVariants', () => {
     expect(phoneLookupVariants(null)).toEqual([]);
   });
 });
+
+describe('resolvePhone — unwrap touches ONLY the +972 glue (2026-09-28 hotfix)', () => {
+  // Unwrap used to strip ANY leading calling code off an invalid `+` number.
+  // Twilio delivers Mexican mobiles as `+521…` (legacy "1" after 52), which
+  // libphonenumber calls invalid, so they turned into US strangers.
+  it.each([
+    ['+5218123551185', 'FAIL unresolvable'],  // real Mexican WhatsApp sender — NOT +18123551185
+    ['+4914724014705', 'FAIL unresolvable'],  // NOT US +14724014705
+    ['+38649416302', 'FAIL unresolvable'],    // NOT DE +49416302
+    // Single-digit typos of an Israeli number are refused, not re-read abroad.
+    ['+97254259030', 'FAIL unresolvable'],
+    ['+9725425903091', 'FAIL unresolvable'],
+    ['+9725357841743', 'FAIL unresolvable'],  // was Cuba
+    ['+9724523418751', 'FAIL unresolvable'],  // was Denmark
+  ])('%s -> %s', (raw, expected) => expect(ok(raw)).toBe(expected));
+
+  it.each([
+    ['+44972542590309', '+972542590309 unwrapped'],     // +44 selected, 972… typed
+    ['+9720972501234567', '+972501234567 unwrapped'],   // double-prefixed, block libphonenumber calls unallocated
+  ])('%s -> %s', (raw, expected) => expect(ok(raw)).toBe(expected));
+});
+
+describe('resolvePhone — a dial-code hint keeps a meaningful leading zero', () => {
+  it.each([
+    ['0555123456', '+39', '+390555123456 country_hint'],   // Florence — was stored as Israeli +972555123456
+    ['06 1234 5678', '+39', '+390612345678 country_hint'], // Rome
+    ['0176 31682387', '+49', '+4917631682387 country_hint'],
+    ['8185550142', '+1', '+18185550142 country_hint'],
+  ])('%s with hint %s -> %s', (raw, hint, expected) => expect(ok(raw, hint)).toBe(expected));
+});
+
+describe('resolvePhone — an explicit Israel hint accepts a mobile typed without its 0', () => {
+  it.each([
+    ['54 123 4567', '+972', '+972541234567 israeli'],
+    ['54 123 4567', '972', '+972541234567 israeli'],
+    ['54 123 4567', 'IL', '+972541234567 israeli'],
+    ['50 123 4567', '+972', '+972501234567 israeli'],     // the assessor's placeholder block
+  ])('%s with hint %s -> %s', (raw, hint, expected) => expect(ok(raw, hint)).toBe(expected));
+
+  it('with no hint the bare 9-digit shape is still refused (Saudi shape)', () => {
+    expect(ok('54 123 4567')).toBe('FAIL unresolvable');
+  });
+});
+
+describe('resolvePhone — non-ASCII digits and bidi marks', () => {
+  it.each([
+    ['٠٥٤٢٥٩٠٣٠٩', '+972542590309 israeli'],                    // Arabic-Indic
+    ['۰۵۴۲۵۹۰۳۰۹', '+972542590309 israeli'],                    // Extended Arabic-Indic / Persian
+    ['０５４２５９０３０９', '+972542590309 israeli'],              // full-width
+    ['‪054 259‏0309‬', '+972542590309 israeli'], // bidi embedding + NBSP + RLM
+  ])('%s -> %s', (raw, expected) => expect(ok(raw)).toBe(expected));
+});
+
+describe('phoneLookupVariants — always includes the input\'s own spelling', () => {
+  it('a number that does not resolve is looked up as stored, never as someone else', () => {
+    const v = phoneLookupVariants('+5218123551185');
+    expect(v).toContain('+5218123551185');
+    expect(v).not.toContain('+18123551185');
+    expect(phoneLookupVariants('whatsapp:+5218123551185')).toEqual(['+5218123551185']);
+  });
+
+  it('a glued spelling outside the templates still finds its own row', () => {
+    const v = phoneLookupVariants('+97203530874598175');
+    expect(v[0]).toBe('+353874598175');
+    expect(v).toContain('+97203530874598175');
+  });
+});
+
+describe('resolvePhone — a foreign code glued on an Israeli number unwraps to a MOBILE only (round 3)', () => {
+  it.each([
+    ['+197227989817', 'FAIL unresolvable'],   // Dallas +1 972 typo — was the Israeli landline +97227989817
+    ['+4497236123456', 'FAIL unresolvable'],  // +44 glued on an Israeli LANDLINE: refused, not guessed
+    ['+1972542590309', '+972542590309 unwrapped'],
+    ['+19720525072697', '+972525072697 unwrapped'], // real row e70ed084 (trunk zero kept)
+  ])('%s -> %s', (raw, expected) => expect(ok(raw)).toBe(expected));
+});
