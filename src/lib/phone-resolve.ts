@@ -30,7 +30,9 @@
  *    rewritten; anything else invalid is refused.
  * 3. No `+`: a non-Israeli `countryHint` (the select the visitor chose) is
  *    tried first — a dial code is read with each country that uses it, so a
- *    meaningful leading 0 (Italy) survives — then the Israeli reading, then the
+ *    meaningful leading 0 (Italy) survives. If that reading is valid but the
+ *    digits are ALSO an Israeli mobile (`054…` + France), the result is
+ *    `{ ok: false, reason: 'ambiguous' }`. Then the Israeli reading, then the
  *    Israeli mobile shape (3a), then the digits as an international number
  *    missing its `+` (`4917…`, `1212…`).
  * 3a. Israeli mobile shape: `05X` + 8 digits (with `0`, `972` or `9720` in
@@ -62,7 +64,7 @@ import { parsePhoneNumberFromString, getCountries, getCountryCallingCode, type C
 
 export type PhoneResolution =
   | { ok: true; e164: string; via: 'as_typed' | 'unwrapped' | 'country_hint' | 'israeli' | 'international_digits' }
-  | { ok: false; reason: 'empty' | 'unresolvable' };
+  | { ok: false; reason: 'empty' | 'unresolvable' | 'ambiguous' };
 
 export interface ResolvePhoneOptions {
   /** The country the form's select showed: a dial code (`'+49'`) or ISO code (`'DE'`). A hint, never a prefix. */
@@ -159,6 +161,37 @@ function countriesForDial(dial: string): CountryCode[] {
   return COUNTRIES.filter((c) => String(getCountryCallingCode(c)) === dial);
 }
 
+/** The number read in a NON-Israeli hinted country, or null (no such hint, or not valid there). */
+function readWithForeignHint(value: string, hint: { iso?: CountryCode; dial?: string }): string | null {
+  if (hint.iso && hint.iso !== ISRAEL) return validE164(value, hint.iso);
+  if (hint.dial && hint.dial !== '972') {
+    // Read the national number as each country using this code would: Italy
+    // keeps its leading 0 (`055…` → `+39 055…`), Germany drops it. Stripping
+    // zeros blindly turned Florence's `0555123456` into an Israeli mobile.
+    for (const iso of countriesForDial(hint.dial)) {
+      const e164 = validE164(value, iso);
+      if (e164) return e164;
+    }
+    return validE164(`+${hint.dial}${value.replace(/^0+/, '')}`);
+  }
+  return null;
+}
+
+/**
+ * The value as an Israeli MOBILE (`05X`…, `972 5X…`, `9720 5X…`), or null.
+ * Landlines are not included, and neither is a bare `5X` + 7 digits: without
+ * an Israel hint that shape is not Israeli (rule 3a), and libphonenumber's IL
+ * parse would otherwise make a quarter of Polish mobiles (`519 574 575`) and
+ * Spanish `51…` numbers "ambiguous".
+ */
+function israeliMobileReading(value: string): string | null {
+  if (!/^(?:0|972)/.test(value)) return null;
+  const shape = israeliMobileShape(value);
+  if (shape) return shape;
+  const parsed = parsePhoneNumberFromString(value, ISRAEL);
+  return parsed && parsed.isValid() && parsed.country === ISRAEL && parsed.getType() === 'MOBILE' ? parsed.number : null;
+}
+
 function isIsraelHint(hint: { iso?: CountryCode; dial?: string }): boolean {
   return hint.iso === ISRAEL || hint.dial === '972';
 }
@@ -183,19 +216,17 @@ export function resolvePhone(raw: string | null | undefined, opts: ResolvePhoneO
   }
 
   const hint = readHint(opts.countryHint);
-  if (hint.iso && hint.iso !== ISRAEL) {
-    const e164 = validE164(value, hint.iso);
-    if (e164) return { ok: true, e164, via: 'country_hint' };
-  } else if (hint.dial && hint.dial !== '972') {
-    // Read the national number as each country using this code would: Italy
-    // keeps its leading 0 (`055…` → `+39 055…`), Germany drops it. Stripping
-    // zeros blindly turned Florence's `0555123456` into an Israeli mobile.
-    for (const iso of countriesForDial(hint.dial)) {
-      const e164 = validE164(value, iso);
-      if (e164) return { ok: true, e164, via: 'country_hint' };
-    }
-    const e164 = validE164(`+${hint.dial}${value.replace(/^0+/, '')}`);
-    if (e164) return { ok: true, e164, via: 'country_hint' };
+  const hinted = readWithForeignHint(value, hint);
+  if (hinted) {
+    // An Israeli living abroad picks their country of residence and types their
+    // Israeli WhatsApp: `054-259-0309` + France is ALSO the valid French
+    // `+33 5 42 59 03 09`. Both readings are real numbers, so neither is a guess
+    // we may make — refuse and let the visitor pick the country or type a `+`
+    // (controller ruling 2026-09-28, athome PR #5). Only the Israeli MOBILE
+    // shape counts: a French `04…` or Italian `06…` landline keeps its hint.
+    const israeliMobile = israeliMobileReading(value);
+    if (israeliMobile && israeliMobile !== hinted) return { ok: false, reason: 'ambiguous' };
+    return { ok: true, e164: hinted, via: 'country_hint' };
   }
 
   const israeli = validE164(value, ISRAEL);

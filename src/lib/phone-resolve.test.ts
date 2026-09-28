@@ -200,7 +200,10 @@ describe('resolvePhone — unwrap touches ONLY the +972 glue (2026-09-28 hotfix)
 
 describe('resolvePhone — a dial-code hint keeps a meaningful leading zero', () => {
   it.each([
-    ['0555123456', '+39', '+390555123456 country_hint'],   // Florence — was stored as Israeli +972555123456
+    // Florence `055 512 3456` is ALSO the Israeli mobile 055-512-3456: ambiguous
+    // since 2026-09-28 (controller ruling, athome PR #5) — refused, not guessed.
+    // Round 1 pinned it Italian; before that it was stored Israeli.
+    ['0555123456', '+39', 'FAIL ambiguous'],
     ['06 1234 5678', '+39', '+390612345678 country_hint'], // Rome
     ['0176 31682387', '+49', '+4917631682387 country_hint'],
     ['8185550142', '+1', '+18185550142 country_hint'],
@@ -251,4 +254,50 @@ describe('resolvePhone — a foreign code glued on an Israeli number unwraps to 
     ['+1972542590309', '+972542590309 unwrapped'],
     ['+19720525072697', '+972525072697 unwrapped'], // real row e70ed084 (trunk zero kept)
   ])('%s -> %s', (raw, expected) => expect(ok(raw)).toBe(expected));
+});
+
+describe('resolvePhone — a foreign hint vs an Israeli mobile is ambiguous (athome PR #5)', () => {
+  // Israelis abroad pick their country of residence and type their Israeli
+  // WhatsApp. The hint used to win, so each of these became a foreign stranger.
+  it.each([
+    ['054-259-0309', 'FR', 'FAIL ambiguous'],   // was +33542590309
+    ['054-259-0309', 'DE', 'FAIL ambiguous'],   // was +49542590309
+    ['054-259-0309', 'UA', 'FAIL ambiguous'],   // was +380542590309
+    ['0542590309', '+39', 'FAIL ambiguous'],    // was +390542590309
+    ['972542590309', 'DE', 'FAIL ambiguous'],   // was +49972542590309
+    ['050 123 4567', 'UA', 'FAIL ambiguous'],   // unallocated IL block, still the mobile shape
+  ])('%s with hint %s -> %s', (raw, hint, expected) => expect(ok(raw, hint)).toBe(expected));
+
+  it.each([
+    ['06 12 34 56 78', 'FR', '+33612345678 country_hint'],  // French mobile: no Israeli reading
+    ['07911 123456', 'GB', '+447911123456 country_hint'],
+    ['0176 31682387', 'DE', '+4917631682387 country_hint'],
+    ['06 1234 5678', 'IT', '+390612345678 country_hint'],   // Rome landline — IL landlines never trigger it
+    ['04 72 00 00 00', 'FR', '+33472000000 country_hint'],  // Lyon landline (04 is also an IL landline prefix)
+    // The US reading of a leading-0 number is invalid, so nothing is ambiguous:
+    // the Israeli reading wins, as before.
+    ['054-259-0309', 'US', '+972542590309 israeli'],
+    ['+972 54 259 0309', 'FR', '+972542590309 as_typed'],   // a typed + always wins
+    ['0033 6 12 34 56 78', 'IL', '+33612345678 as_typed'],
+  ])('%s with hint %s -> %s', (raw, hint, expected) => expect(ok(raw, hint)).toBe(expected));
+
+  it('no hint / an Israel hint: unchanged', () => {
+    expect(ok('054-259-0309')).toBe('+972542590309 israeli');
+    expect(ok('054-259-0309', 'IL')).toBe('+972542590309 israeli');
+    expect(ok('054-259-0309', '+972')).toBe('+972542590309 israeli');
+  });
+});
+
+describe('resolvePhone — the ambiguity check needs an Israeli prefix (PR #350 review)', () => {
+  // A bare `5X` + 7 digits is not Israeli without an Israel hint (rule 3a), so
+  // it must not make a Polish or Spanish mobile ambiguous.
+  it.each([
+    ['519 574 575', 'PL', '+48519574575 country_hint'],
+    ['512 345 678', 'PL', '+48512345678 country_hint'],
+    ['512 345 678', 'ES', '+34512345678 country_hint'],
+  ])('%s with hint %s -> %s', (raw, hint, expected) => expect(ok(raw, hint)).toBe(expected));
+
+  it('a Saudi 05… with SA picked stays ambiguous (the digits are genuinely identical)', () => {
+    expect(ok('050 123 4567', 'SA')).toBe('FAIL ambiguous');
+  });
 });
