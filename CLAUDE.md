@@ -96,6 +96,10 @@ STORY (optional)           Genie backstory narrative
 SURVEY                     7 steps:
   1. Name input
   2. Email input           (+ consent checkbox)
+                           (+ an OPTIONAL, UNTICKED text-message box, shown only when the phone looks
+                            like a US/Canada number: `src/lib/sms-consent.js`; when shown and ticked the
+                            CRM post carries `smsConsent: true`. The prefix look only decides SHOWING the
+                            box; the CRM decides for real by the number's country. Added 2026-11-11, PR #12.)
   3. Can decode Hebrew?    Yes → continue, No → extreme beginner
   4. Knowledge source      School/Home/Religious/Streets
   5. Study details         Months + hours/week OR self-assessed fluency
