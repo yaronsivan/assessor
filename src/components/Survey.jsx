@@ -6,6 +6,13 @@ import { trackAssessmentStarted } from '../utils/analytics';
 import { saveAssessmentStart, updateAssessmentProfile } from '../lib/supabase';
 import { buildLeadPhone } from '../lib/lead-phone';
 import { getCountryCode } from '../lib/connection-country';
+import {
+  SMS_CONSENT_TEXT,
+  SMS_CONSENT_PRIVACY_URL,
+  SMS_CONSENT_TERMS_URL,
+  looksLikeNorthAmericaPhone,
+  smsConsentField,
+} from '../lib/sms-consent';
 
 const CRM_API_URL = 'https://web-umber-rho-91.vercel.app/api/contacts';
 const VALIDATE_EMAIL_URL = 'https://web-umber-rho-91.vercel.app/api/validate-email';
@@ -111,6 +118,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
   const [countryCode, setCountryCode] = useState('+972');
   const [customCountryCode, setCustomCountryCode] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [smsConsent, setSmsConsent] = useState(false);
 
   // Helper to save profile data to Supabase before completing
   const completeWithProfileSave = async (profile) => {
@@ -229,7 +237,9 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
       await submitAssessorLead({
         fullName: formData.name,
         email: formData.email,
-        ...(fullPhone ? { phoneNumber: fullPhone, phoneCountry } : {}),
+        ...(fullPhone
+          ? { phoneNumber: fullPhone, phoneCountry, ...smsConsentField(phoneCountry, phoneNumber, smsConsent) }
+          : {}),
       });
     } catch (error) {
       console.error('CRM lead-creation failed:', error);
@@ -523,6 +533,31 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
                 </span>
               </label>
             </div>
+
+            {/* Text-message agreement: optional, only for US/Canada-looking numbers */}
+            {looksLikeNorthAmericaPhone(getFullCountryCode(), phoneNumber) && (
+              <div className="mt-6 bg-purple-200/20 border-4 border-purple-300/40 p-4 shadow-pixel-sm">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smsConsent}
+                    onChange={(e) => setSmsConsent(e.target.checked)}
+                    className="mt-1 w-5 h-5 border-4 border-purple-500"
+                  />
+                  <span className="text-white font-semibold text-left">
+                    {SMS_CONSENT_TEXT} See our{' '}
+                    <a href={SMS_CONSENT_PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="underline">
+                      Privacy Policy
+                    </a>{' '}
+                    and{' '}
+                    <a href={SMS_CONSENT_TERMS_URL} target="_blank" rel="noopener noreferrer" className="underline">
+                      Terms
+                    </a>
+                    .
+                  </span>
+                </label>
+              </div>
+            )}
 
             {emailError && (
               <p className="text-red-300 text-center mt-3 font-semibold">{emailError}</p>
