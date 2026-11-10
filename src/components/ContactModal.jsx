@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { readUtm } from '../lib/utm';
+import { getCountryCode } from '../lib/connection-country';
 
 function ContactModal({ isOpen, onClose }) {
   const [view, setView] = useState('options'); // 'options', 'form'
@@ -39,6 +40,8 @@ function ContactModal({ isOpen, onClose }) {
         Object.entries(utm).filter(([, v]) => v !== undefined)
       );
 
+      const connectionCountry = await getCountryCode(); // null on failure or after 2s
+
       const response = await fetch('https://web-umber-rho-91.vercel.app/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,6 +55,7 @@ function ContactModal({ isOpen, onClose }) {
           ...(formData.phone ? { phoneNumber: formData.phone } : {}),
           notes: formData.message,
           ...utmFields,
+          ...(connectionCountry ? { connectionCountry } : {}),
         }),
       });
 
