@@ -5,6 +5,7 @@ import { getMessage } from '../config/messages';
 import { trackAssessmentStarted } from '../utils/analytics';
 import { saveAssessmentStart, updateAssessmentProfile } from '../lib/supabase';
 import { buildLeadPhone } from '../lib/lead-phone';
+import { getCountryCode } from '../lib/connection-country';
 
 const CRM_API_URL = 'https://web-umber-rho-91.vercel.app/api/contacts';
 const VALIDATE_EMAIL_URL = 'https://web-umber-rho-91.vercel.app/api/validate-email';
@@ -36,9 +37,10 @@ const readClickCookie = (name) => {
 // POST a lead to the central CRM. The CRM authenticates assessor.ulpan.co.il
 // via its CORS allowlist (no secret needed for the browser path), and the
 // `assessor_site` source bypasses the staff-session requirement.
-const submitAssessorLead = (fields) => {
+const submitAssessorLead = async (fields) => {
   const gclid = readClickCookie('click_gclid');
   const fbclid = readClickCookie('click_fbclid');
+  const connectionCountry = await getCountryCode(); // null on failure or after 2s
   return fetch(CRM_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -49,6 +51,7 @@ const submitAssessorLead = (fields) => {
       studentStatus: 'prospect',
       ...(gclid ? { gclid } : {}),
       ...(fbclid ? { fbclid } : {}),
+      ...(connectionCountry ? { connectionCountry } : {}),
       ...fields,
     }),
   });

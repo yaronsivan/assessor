@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getAttribution } from './utm';
+import { getIpLookup } from './connection-country';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://svgdyrsfxcausecwrgbc.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2Z2R5cnNmeGNhdXNlY3dyZ2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0ODE0MTYsImV4cCI6MjA4MDA1NzQxNn0.5mauFuooWrYgzqRliGGBTcD0okrnNJzZklfwbLVyOyE';
@@ -18,22 +19,18 @@ function getDeviceType() {
   return 'desktop';
 }
 
-// Fetch geolocation from IP (using ipapi.co which supports HTTPS)
-async function getGeolocation() {
-  try {
-    const response = await fetch('https://ipapi.co/json/');
-    if (!response.ok) return null;
-    const data = await response.json();
-    return {
-      geo_country: data.country_name,
-      geo_region: data.region,
-      geo_city: data.city,
-      ip_address: data.ip
-    };
-  } catch (err) {
-    console.error('Failed to get geolocation:', err);
-    return null;
-  }
+// Fetch geolocation from IP (using ipapi.co which supports HTTPS).
+// The lookup is shared with getCountryCode(); the shape returned here must
+// stay exactly these four keys (it is spread into the assessments insert).
+export async function getGeolocation() {
+  const data = await getIpLookup();
+  if (!data) return null;
+  return {
+    geo_country: data.country_name,
+    geo_region: data.region,
+    geo_city: data.city,
+    ip_address: data.ip
+  };
 }
 
 // Build the `referrer` value. When the visitor arrived from the magazine
