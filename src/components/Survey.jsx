@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Mailcheck from 'mailcheck';
 import { runSurvey } from '../hooks/useSurvey';
 import { getMessage } from '../config/messages';
 import { trackAssessmentStarted } from '../utils/analytics';
 import { saveAssessmentStart, updateAssessmentProfile } from '../lib/supabase';
 import { buildLeadPhone } from '../lib/lead-phone';
+import { withResolvedPhone } from '../lib/crm-results';
 import { getCountryCode } from '../lib/connection-country';
 import {
   SMS_CONSENT_TEXT,
@@ -119,9 +120,16 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
   const [customCountryCode, setCustomCountryCode] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [smsConsent, setSmsConsent] = useState(false);
+  // The phone resolved on the details step. A ref, not state: the survey
+  // callbacks below are created several steps later and must see it.
+  const resolvedPhoneRef = useRef(null);
 
-  // Helper to save profile data to Supabase before completing
-  const completeWithProfileSave = async (profile) => {
+  // Helper to save profile data to Supabase before completing. The profile
+  // gets the phone here: the survey engine builds it from name + email only,
+  // and without the phone the CRM can't find a contact made by the office or
+  // by WhatsApp (lib/crm-results.js).
+  const completeWithProfileSave = async (surveyProfile) => {
+    const profile = withResolvedPhone(surveyProfile, resolvedPhoneRef.current);
     if (localAssessmentId) {
       await updateAssessmentProfile(localAssessmentId, profile);
     }
@@ -217,6 +225,7 @@ function Survey({ mode = 'fun', onComplete, onMessageChange, onAssessmentIdChang
     }
     setPhoneError('');
     const fullPhone = leadPhone.e164;
+    resolvedPhoneRef.current = fullPhone || null;
 
     // Update formData with the resolved phone
     if (fullPhone) {

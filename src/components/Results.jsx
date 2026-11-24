@@ -5,6 +5,7 @@ import LevelAssessmentModal from './LevelAssessmentModal';
 import { trackAssessmentCompleted, trackViewCourses, trackScheduleAssessment, trackEvent } from '../utils/analytics';
 import { saveAssessmentComplete, trackResultsAction, trackResultsExit } from '../lib/supabase';
 import { bookingHref } from '../lib/booking';
+import { buildCrmResultsBody } from '../lib/crm-results';
 
 // Track sent webhooks at module level to survive StrictMode remounts
 const sentWebhooks = new Set();
@@ -109,14 +110,9 @@ function Results({ mode = 'fun', profile, results, onRestart, assessmentId: prop
         const response = await fetch(CRM_RESULTS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: profile?.email,
-            name: profile?.name,
-            phone: profile?.phone || undefined,
-            level: results.recommendedLevel,
-            assessmentId: propAssessmentId,
-            organization: 'ulpan_bayit',
-          }),
+          body: JSON.stringify(
+            buildCrmResultsBody({ profile, results, assessmentId: propAssessmentId })
+          ),
         });
 
         const responseText = await response.text();
