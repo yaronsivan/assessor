@@ -16,27 +16,34 @@ import { createHmac } from 'node:crypto';
  * `Sites/aktuali/lib/grant.ts`):
  *   base64url(JSON payload) + '.' + base64url(HMAC-SHA256(payloadB64))
  *
- * Level banding (must match אקטואלי's `lib/assessor-level.ts` exactly;
- * lowercase to אקטואלי's a0–c1 ladder):
- *   beyondMax === '1'           → c1   (overrides any parse)
- *   A1.1, A1.2                  → a1
- *   A1.3, A2.1, A2.2            → a2
- *   A2.3, B1.1, B1.2            → b1
- *   B1.3, B2.1                  → b2
+ * The rule (Yaron, 2026-11-19): the edition has the same letter as the course
+ * the test recommends, and each edition is written with what the reader learned
+ * BEFORE that course. For reading, "your level" is what you already know, not
+ * what you are studying. Aleph (A1.1), the very start of Aleph, gets א₀ (a0),
+ * the floor edition.
+ *
+ * Level banding (MUST stay in sync with אקטואלי's `lib/assessor-level.ts`;
+ * lowercase to אקטואלי's a0–c1 ladder; the edition's Hebrew label in brackets):
+ *   beyondMax === '1'           → c1   [ה]   (overrides any parse)
+ *   A1.1                        → a0   [א₀]  Aleph
+ *   A1.2, A1.3                  → a1   [א]   Aleph+, Aleph++
+ *   A2.1, A2.2, A2.3            → a2   [ב]   Bet, Bet+, Bet++
+ *   B1.1, B1.2, B1.3            → b1   [ג]   Gimmel, Gimmel+, Gimmel++
+ *   B2.1                        → b2   [ד]   Dalet
  *   unparseable / unmapped      → a1
- * (a0 is never an assessor output — the assessor floor is A1.1.)
+ * The magazine's map (`api/magazine-link.js`) is a different one, unchanged.
  */
 
 const SUBLEVEL_TO_AKTUALI = {
-  'A1.1': 'a1',
+  'A1.1': 'a0',
   'A1.2': 'a1',
-  'A1.3': 'a2',
+  'A1.3': 'a1',
   'A2.1': 'a2',
   'A2.2': 'a2',
-  'A2.3': 'b1',
+  'A2.3': 'a2',
   'B1.1': 'b1',
   'B1.2': 'b1',
-  'B1.3': 'b2',
+  'B1.3': 'b1',
   'B2.1': 'b2',
 };
 
