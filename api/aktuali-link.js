@@ -31,7 +31,8 @@ import { createHmac } from 'node:crypto';
  *   B1.1, B1.2, B1.3            → b1   [ג]   Gimmel, Gimmel+, Gimmel++
  *   B2.1                        → b2   [ד]   Dalet
  *   unparseable / unmapped      → a1
- * The magazine's map (`api/magazine-link.js`) is a different one, unchanged.
+ * The magazine's map (`api/magazine-link.js`) sends a reader to the same letter
+ * since 2026-11-28, in the magazine's own DB keys (A1..C2).
  */
 
 const SUBLEVEL_TO_AKTUALI = {
